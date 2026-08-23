@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { SiteHeader } from '@/components/site-header';
+import { AppShell } from '@/components/layout/app-shell';
 import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 
@@ -13,15 +13,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
   title: {
-    default: 'Thebai - Hoc bang the ghi nho',
-    template: '%s | Thebai',
+    default: 'Vocab Quiz - Học bằng thẻ ghi nhớ',
+    template: '%s | Vocab Quiz',
   },
   description:
-    'Tao bo the ghi nho cua rieng ban, hoc theo nhieu che do va kham pha bo the cong khai cua nguoi khac.',
+    'Tạo bộ thẻ ghi nhớ của riêng bạn, học theo nhiều chế độ và khám phá bộ thẻ công khai của người khác.',
   openGraph: {
     type: 'website',
     locale: 'vi_VN',
-    siteName: 'Thebai',
+    siteName: 'Vocab Quiz',
   },
 };
 
@@ -43,10 +43,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             href="#main"
             className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
           >
-            Bo qua, den noi dung chinh
+            Bỏ qua, đến nội dung chính
           </a>
-          <SiteHeader />
-          <main id="main">{children}</main>
+          <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

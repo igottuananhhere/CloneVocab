@@ -55,7 +55,7 @@ export function ProfileForm({ profile }: { profile: MeProfile }) {
         body: parsed.data satisfies UpdateProfileInput,
       });
 
-      setStatus({ tone: 'success', message: 'Da luu thay doi.' });
+      setStatus({ tone: 'success', message: 'Đã lưu thay đổi.' });
       // Header va cac Server Component khac dang giu ban cu cua ho so.
       router.refresh();
     } catch (error) {
@@ -72,7 +72,7 @@ export function ProfileForm({ profile }: { profile: MeProfile }) {
           setStatus({ tone: 'error', message: error.message });
         }
       } else {
-        setStatus({ tone: 'error', message: 'Khong ket noi duoc toi may chu. Thu lai sau.' });
+        setStatus({ tone: 'error', message: 'Không kết nối được tới máy chủ. Thử lại sau.' });
       }
     } finally {
       setSaving(false);
@@ -86,7 +86,7 @@ export function ProfileForm({ profile }: { profile: MeProfile }) {
       <Field
         id="username"
         label="Username"
-        hint="Xuat hien trong duong dan ho so cong khai cua ban."
+        hint="Xuất hiện trong đường dẫn hồ sơ công khai của bạn."
         error={errors.username}
       >
         <Input
@@ -98,7 +98,7 @@ export function ProfileForm({ profile }: { profile: MeProfile }) {
         />
       </Field>
 
-      <Field id="displayName" label="Ten hien thi" error={errors.displayName}>
+      <Field id="displayName" label="Tên hiển thị" error={errors.displayName}>
         <Input
           name="displayName"
           defaultValue={profile.displayName ?? ''}
@@ -107,12 +107,12 @@ export function ProfileForm({ profile }: { profile: MeProfile }) {
         />
       </Field>
 
-      <Field id="bio" label="Gioi thieu" hint="Toi da 280 ky tu." error={errors.bio}>
+      <Field id="bio" label="Giới thiệu" hint="Tối đa 280 ký tự." error={errors.bio}>
         <Textarea name="bio" defaultValue={profile.bio ?? ''} maxLength={280} />
       </Field>
 
       <Button type="submit" disabled={saving}>
-        {saving ? 'Dang luu...' : 'Luu thay doi'}
+        {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
       </Button>
     </form>
   );

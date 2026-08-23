@@ -25,7 +25,7 @@ export function GoogleButton({ next, onError }: { next?: string; onError: (messa
 
     if (error) {
       setLoading(false);
-      onError(`Khong khoi tao duoc dang nhap Google: ${error.message}`);
+      onError(`Không khởi tạo được đăng nhập Google: ${error.message}`);
     }
     // Thanh cong thi trinh duyet dieu huong sang Google, khong can tat loading.
   }
@@ -33,7 +33,7 @@ export function GoogleButton({ next, onError }: { next?: string; onError: (messa
   return (
     <Button variant="outline" block onClick={signIn} disabled={loading}>
       <GoogleMark />
-      {loading ? 'Dang chuyen huong...' : 'Tiep tuc voi Google'}
+      {loading ? 'Đang chuyển hướng...' : 'Tiếp tục với Google'}
     </Button>
   );
 }

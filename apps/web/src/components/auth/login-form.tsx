@@ -51,7 +51,7 @@ export function LoginForm() {
       // Khong noi ro la sai email hay sai mat khau: tranh de lo tai khoan nao ton tai.
       setFormError(
         error.message.toLowerCase().includes('invalid')
-          ? 'Email hoac mat khau khong dung.'
+          ? 'Email hoặc mật khẩu không đúng.'
           : error.message,
       );
       return;
@@ -78,7 +78,7 @@ export function LoginForm() {
           />
         </Field>
 
-        <Field id="password" label="Mat khau" error={errors.password}>
+        <Field id="password" label="Mật khẩu" error={errors.password}>
           <Input
             name="password"
             type="password"
@@ -89,22 +89,22 @@ export function LoginForm() {
         </Field>
 
         <Button type="submit" block disabled={submitting}>
-          {submitting ? 'Dang dang nhap...' : 'Dang nhap'}
+          {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </Button>
       </form>
 
       <div className="flex items-center gap-3" aria-hidden="true">
         <span className="h-px flex-1 bg-border" />
-        <span className="text-xs text-muted-foreground">hoac</span>
+        <span className="text-xs text-muted-foreground">hoặc</span>
         <span className="h-px flex-1 bg-border" />
       </div>
 
       <GoogleButton next={next} onError={setFormError} />
 
       <p className="text-center text-sm text-muted-foreground">
-        Chua co tai khoan?{' '}
+        Chưa có tài khoản?{' '}
         <Link href="/register" className="font-medium text-primary hover:underline">
-          Dang ky mien phi
+          Đăng ký miễn phí
         </Link>
       </p>
     </div>

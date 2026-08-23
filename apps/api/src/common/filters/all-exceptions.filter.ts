@@ -81,7 +81,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     return {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       error: 'InternalServerError',
-      message: 'Da co loi khong mong doi xay ra. Vui long thu lai sau.',
+      message: 'Đã có lỗi không mong đợi xảy ra. Vui lòng thử lại sau.',
     };
   }
 
@@ -94,31 +94,31 @@ export class AllExceptionsFilter implements ExceptionFilter {
     switch (exception.code) {
       case 'P2002': {
         const target = exception.meta?.target;
-        const field = Array.isArray(target) ? target.join(', ') : String(target ?? 'gia tri');
+        const field = Array.isArray(target) ? target.join(', ') : String(target ?? 'giá trị');
         return {
           status: HttpStatus.CONFLICT,
           error: 'Conflict',
-          message: `Da ton tai ban ghi voi ${field} nay.`,
+          message: `Đã tồn tại bản ghi với ${field} này.`,
         };
       }
       case 'P2025':
         return {
           status: HttpStatus.NOT_FOUND,
           error: 'NotFound',
-          message: 'Khong tim thay du lieu yeu cau.',
+          message: 'Không tìm thấy dữ liệu yêu cầu.',
         };
       case 'P2003':
         return {
           status: HttpStatus.BAD_REQUEST,
           error: 'BadRequest',
-          message: 'Du lieu tham chieu toi mot ban ghi khong ton tai.',
+          message: 'Dữ liệu tham chiếu tới một bản ghi không tồn tại.',
         };
       default:
         this.logger.error(`Loi Prisma chua duoc xu ly: ${exception.code}`, exception.stack);
         return {
           status: HttpStatus.INTERNAL_SERVER_ERROR,
           error: 'InternalServerError',
-          message: 'Da co loi khong mong doi xay ra. Vui long thu lai sau.',
+          message: 'Đã có lỗi không mong đợi xảy ra. Vui lòng thử lại sau.',
         };
     }
   }

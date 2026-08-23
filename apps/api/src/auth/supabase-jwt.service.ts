@@ -67,11 +67,11 @@ export class SupabaseJwtService {
       this.logger.debug(
         `Tu choi token: ${error instanceof Error ? error.message : String(error)}`,
       );
-      throw new UnauthorizedException('Token khong hop le hoac da het han.');
+      throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn.');
     }
 
     if (typeof payload.sub !== 'string' || payload.sub.length === 0) {
-      throw new UnauthorizedException('Token thieu dinh danh nguoi dung.');
+      throw new UnauthorizedException('Token thiếu định danh người dùng.');
     }
 
     return {

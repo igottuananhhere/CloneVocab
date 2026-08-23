@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { apiServer } from '@/lib/api/server';
 
 export const metadata: Metadata = {
-  title: 'Bang dieu khien',
+  title: 'Bảng điều khiển',
   robots: { index: false, follow: false },
 };
 
@@ -22,24 +22,24 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Chao {displayName}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Chào {displayName}</h1>
           <p className="mt-1 text-muted-foreground">
-            Ho so cong khai:{' '}
+            Hồ sơ công khai:{' '}
             <Link href={`/u/${me.username}`} className="text-primary hover:underline">
               /u/{me.username}
             </Link>
           </p>
         </div>
         <Link href="/settings" className={buttonVariants({ variant: 'outline' })}>
-          Chinh sua ho so
+          Chỉnh sửa hồ sơ
         </Link>
       </header>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Bo the cua ban</CardTitle>
-            <CardDescription>Cac bo the ban da tao</CardDescription>
+            <CardTitle className="text-base">Bộ thẻ của bạn</CardTitle>
+            <CardDescription>Các bộ thẻ bạn đã tạo</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold tabular-nums">0</p>
@@ -48,8 +48,8 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">The da thuoc</CardTitle>
-            <CardDescription>Tren tong so the dang hoc</CardDescription>
+            <CardTitle className="text-base">Thẻ đã thuộc</CardTitle>
+            <CardDescription>Trên tổng số thẻ đang học</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold tabular-nums">0</p>
@@ -58,8 +58,8 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Can on hom nay</CardTitle>
-            <CardDescription>The den han nhac lai</CardDescription>
+            <CardTitle className="text-base">Cần ôn hôm nay</CardTitle>
+            <CardDescription>Thẻ đến hạn nhắc lại</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold tabular-nums">0</p>
@@ -68,8 +68,8 @@ export default async function DashboardPage() {
       </div>
 
       <Alert className="mt-8">
-        Cac chi so tren se duoc noi voi du lieu that o giai doan 2 va 3, khi API bo the va
-        tien do hoc tap san sang.
+        Các chỉ số trên sẽ được nối với dữ liệu thật ở giai đoạn 2 và 3, khi API bộ thẻ và
+        tiến độ học tập sẵn sàng.
       </Alert>
     </div>
   );

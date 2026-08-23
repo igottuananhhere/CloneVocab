@@ -22,6 +22,8 @@
     "migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "migrate:create": "dotenv -e ../../.env -- prisma migrate dev --create-only",
     "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "migrate:deploy:prod": "dotenv -e ../../.env.production.local -- prisma migrate deploy",
+    "studio:prod": "dotenv -e ../../.env.production.local -- prisma studio",
     "reset": "dotenv -e ../../.env -- prisma migrate reset --force",
     "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
     "studio": "dotenv -e ../../.env -- prisma studio",

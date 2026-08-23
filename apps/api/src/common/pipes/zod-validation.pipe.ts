@@ -25,7 +25,7 @@ export class ZodValidationPipe<T> implements PipeTransform<unknown, T> {
 
     throw new BadRequestException({
       error: 'ValidationError',
-      message: 'Du lieu gui len khong hop le.',
+      message: 'Dữ liệu gửi lên không hợp lệ.',
       details,
     });
   }

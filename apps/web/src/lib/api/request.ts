@@ -55,7 +55,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     const error = payload as ApiError | null;
     throw new ApiRequestError(
       response.status,
-      error?.message ?? `Yeu cau that bai (${response.status}).`,
+      error?.message ?? `Yêu cầu thất bại (${response.status}).`,
       error?.details,
     );
   }

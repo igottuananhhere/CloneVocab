@@ -1,4 +1,4 @@
-# Thebai — web app hoc bang the ghi nho
+# Vocab Quiz — web app hoc bang the ghi nho
 
 Monorepo cho mot ung dung hoc flashcard: tao bo the cua rieng ban, hoc theo nhieu che do,
 va kham pha bo the cong khai cua nguoi khac.

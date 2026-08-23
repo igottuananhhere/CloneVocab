@@ -50,7 +50,7 @@ export class ProfilesService {
     });
 
     if (!row) {
-      throw new NotFoundException(`Khong tim thay nguoi dung "${username}".`);
+      throw new NotFoundException(`Không tìm thấy người dùng "${username}".`);
     }
 
     return toPublicProfile(row);
@@ -95,11 +95,11 @@ export class ProfilesService {
 
   private async assertUsernameAvailable(username: string, currentUserId: string): Promise<void> {
     if (RESERVED_USERNAMES.has(username.toLowerCase())) {
-      throw new ConflictException(`Username "${username}" duoc he thong giu cho, hay chon ten khac.`);
+      throw new ConflictException(`Username "${username}" được hệ thống giữ chỗ, hãy chọn tên khác.`);
     }
 
     if (!(await this.isUsernameAvailable(username, currentUserId))) {
-      throw new ConflictException(`Username "${username}" da co nguoi su dung.`);
+      throw new ConflictException(`Username "${username}" đã có người sử dụng.`);
     }
   }
 

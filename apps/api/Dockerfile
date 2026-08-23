@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # ---------------------------------------------------------------------------
 # Image cho NestJS API. Build tu THU MUC GOC cua monorepo:
-#   docker build -f apps/api/Dockerfile -t thebai-api .
+#   docker build -f apps/api/Dockerfile -t vocab-quiz-api .
 # ---------------------------------------------------------------------------
 
 FROM node:22-alpine AS base

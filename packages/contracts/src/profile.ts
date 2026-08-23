@@ -6,14 +6,14 @@ import { z } from 'zod';
  */
 export const usernameSchema = z
   .string()
-  .min(3, 'Username phai co it nhat 3 ky tu')
-  .max(30, 'Username toi da 30 ky tu')
+  .min(3, 'Username phải có ít nhất 3 ký tự')
+  .max(30, 'Username tối đa 30 ký tự')
   .regex(
     /^[a-z0-9_-]+$/,
-    'Username chi duoc chua chu thuong khong dau, so, gach duoi va gach ngang',
+    'Username chỉ được chứa chữ thường không dấu, số, gạch dưới và gạch ngang',
   )
   .refine((v) => !v.startsWith('-') && !v.endsWith('-'), {
-    message: 'Username khong duoc bat dau hoac ket thuc bang gach ngang',
+    message: 'Username không được bắt đầu hoặc kết thúc bằng gạch ngang',
   });
 
 export const profileSchema = z.object({
@@ -41,7 +41,7 @@ export const updateProfileSchema = z
     avatarUrl: z.string().url().nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {
-    message: 'Phai cung cap it nhat mot truong de cap nhat',
+    message: 'Phải cung cấp ít nhất một trường để cập nhật',
   });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 

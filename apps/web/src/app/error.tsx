@@ -19,12 +19,12 @@ export default function GlobalError({
 
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center">
-      <h1 className="text-3xl font-bold tracking-tight">Da co loi xay ra</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Đã có lỗi xảy ra</h1>
       <Alert tone="error" className="mt-6 text-left">
-        {error.message || 'Loi khong xac dinh.'}
+        {error.message || 'Lỗi không xác định.'}
       </Alert>
       <Button className="mt-6" onClick={reset}>
-        Thu lai
+        Thử lại
       </Button>
     </div>
   );

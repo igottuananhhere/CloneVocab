@@ -30,18 +30,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const profile = await loadProfile(username);
 
   if (!profile) {
-    return { title: 'Khong tim thay nguoi dung', robots: { index: false } };
+    return { title: 'Không tìm thấy người dùng', robots: { index: false } };
   }
 
   const name = profile.displayName ?? profile.username;
 
   return {
     title: name,
-    description: profile.bio ?? `Cac bo the ghi nho cong khai cua ${name}.`,
+    description: profile.bio ?? `Các bộ thẻ ghi nhớ công khai của ${name}.`,
     alternates: { canonical: `/u/${profile.username}` },
     openGraph: {
       title: name,
-      description: profile.bio ?? `Cac bo the ghi nho cong khai cua ${name}.`,
+      description: profile.bio ?? `Các bộ thẻ ghi nhớ công khai của ${name}.`,
       type: 'profile',
     },
   };
@@ -71,16 +71,16 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <p className="text-muted-foreground">@{profile.username}</p>
           {profile.bio && <p className="mt-3 max-w-prose">{profile.bio}</p>}
           <p className="mt-2 text-sm text-muted-foreground">
-            Tham gia tu {formatDate(profile.createdAt)}
+            Tham gia từ {formatDate(profile.createdAt)}
           </p>
         </div>
       </header>
 
       <Card className="mt-8">
         <CardContent className="pt-6">
-          <h2 className="text-lg font-semibold">Bo the cong khai</h2>
+          <h2 className="text-lg font-semibold">Bộ thẻ công khai</h2>
           <Alert className="mt-4">
-            Danh sach bo the se hien o day khi API bo the hoan thanh o giai doan 2.
+            Danh sách bộ thẻ sẽ hiện ở đây khi API bộ thẻ hoàn thành ở giai đoạn 2.
           </Alert>
         </CardContent>
       </Card>

@@ -17,6 +17,8 @@
     "db:generate": "pnpm --filter @flashcard/db run generate",
     "db:migrate": "pnpm --filter @flashcard/db run migrate",
     "db:deploy": "pnpm --filter @flashcard/db run migrate:deploy",
+    "db:deploy:prod": "pnpm --filter @flashcard/db run migrate:deploy:prod",
+    "db:studio:prod": "pnpm --filter @flashcard/db run studio:prod",
     "db:reset": "pnpm --filter @flashcard/db run reset",
     "db:seed": "pnpm --filter @flashcard/db run seed",
     "db:studio": "pnpm --filter @flashcard/db run studio",

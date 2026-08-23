@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
-  title: 'Dang nhap',
+  title: 'Đăng nhập',
   robots: { index: false, follow: false },
 };
 
@@ -14,8 +14,8 @@ export default function LoginPage() {
     <div className="mx-auto flex max-w-md flex-col justify-center px-4 py-12 sm:py-20">
       <Card>
         <CardHeader>
-          <CardTitle>Dang nhap</CardTitle>
-          <CardDescription>Tiep tuc hoc voi bo the cua ban.</CardDescription>
+          <CardTitle>Đăng nhập</CardTitle>
+          <CardDescription>Tiếp tục học với bộ thẻ của bạn.</CardDescription>
         </CardHeader>
         <CardContent>
           {/* useSearchParams doi mot Suspense boundary khi trang duoc prerender. */}

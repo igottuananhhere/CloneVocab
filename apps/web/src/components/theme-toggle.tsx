@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 
 const ORDER = ['light', 'dark', 'system'] as const;
 const LABEL: Record<(typeof ORDER)[number], string> = {
-  light: 'Giao dien sang',
-  dark: 'Giao dien toi',
-  system: 'Theo he thong',
+  light: 'Giao diện sáng',
+  dark: 'Giao diện tối',
+  system: 'Theo hệ thống',
 };
 
 export function ThemeToggle() {
@@ -36,7 +36,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(next)}
-      aria-label={`${LABEL[current]}. Chuyen sang ${LABEL[next].toLowerCase()}`}
+      aria-label={`${LABEL[current]}. Chuyển sang ${LABEL[next].toLowerCase()}`}
       title={LABEL[current]}
     >
       <Icon aria-hidden="true" />

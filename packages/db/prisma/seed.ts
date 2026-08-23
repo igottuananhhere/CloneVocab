@@ -25,15 +25,15 @@ const DEMO_USERS: DemoUser[] = [
     email: 'an@example.com',
     password: 'Password123!',
     username: 'an-nguyen',
-    displayName: 'An Nguyen',
-    bio: 'Hoc tieng Nhat moi ngay 20 phut.',
+    displayName: 'An Nguyễn',
+    bio: 'Học tiếng Nhật mỗi ngày 20 phút.',
   },
   {
     email: 'binh@example.com',
     password: 'Password123!',
     username: 'binh-tran',
-    displayName: 'Binh Tran',
-    bio: 'On thi IELTS 2026.',
+    displayName: 'Bình Trần',
+    bio: 'Ôn thi IELTS 2026.',
   },
 ];
 
@@ -87,20 +87,20 @@ async function ensureAuthUser(user: DemoUser): Promise<string> {
 }
 
 const JAPANESE_CARDS: Array<[string, string]> = [
-  ['こんにちは', 'Xin chao (ban ngay)'],
-  ['ありがとう', 'Cam on'],
-  ['すみません', 'Xin loi / Lam phien'],
-  ['おはよう', 'Chao buoi sang'],
-  ['さようなら', 'Tam biet'],
-  ['はじめまして', 'Rat vui duoc gap ban'],
+  ['こんにちは', 'Xin chào (ban ngày)'],
+  ['ありがとう', 'Cảm ơn'],
+  ['すみません', 'Xin lỗi / Làm phiền'],
+  ['おはよう', 'Chào buổi sáng'],
+  ['さようなら', 'Tạm biệt'],
+  ['はじめまして', 'Rất vui được gặp bạn'],
 ];
 
 const IELTS_CARDS: Array<[string, string]> = [
-  ['ubiquitous', 'Co mat khap noi'],
-  ['mitigate', 'Lam giam nhe, xoa diu'],
-  ['plausible', 'Nghe co ve hop ly'],
-  ['redundant', 'Thua, khong can thiet'],
-  ['scrutinise', 'Xem xet ky luong'],
+  ['ubiquitous', 'Có mặt khắp nơi'],
+  ['mitigate', 'Làm giảm nhẹ, xoa dịu'],
+  ['plausible', 'Nghe có vẻ hợp lý'],
+  ['redundant', 'Thừa, không cần thiết'],
+  ['scrutinise', 'Xem xét kỹ lưỡng'],
 ];
 
 async function main(): Promise<void> {
@@ -132,9 +132,9 @@ async function main(): Promise<void> {
 
   await seedSet({
     ownerId: an.id,
-    title: 'Tieng Nhat so cap - Chao hoi',
-    description: 'Nhung cau chao hoi co ban nhat trong giao tiep hang ngay.',
-    subject: 'Ngoai ngu',
+    title: 'Tiếng Nhật sơ cấp - Chào hỏi',
+    description: 'Những câu chào hỏi cơ bản nhất trong giao tiếp hàng ngày.',
+    subject: 'Ngoại ngữ',
     language: 'ja',
     visibility: Visibility.PUBLIC,
     cards: JAPANESE_CARDS,
@@ -142,9 +142,9 @@ async function main(): Promise<void> {
 
   await seedSet({
     ownerId: binh.id,
-    title: 'IELTS Academic - Tu vung hoc thuat',
-    description: 'Tu vung xuat hien nhieu trong Writing Task 2.',
-    subject: 'Ngoai ngu',
+    title: 'IELTS Academic - Từ vựng học thuật',
+    description: 'Từ vựng xuất hiện nhiều trong Writing Task 2.',
+    subject: 'Ngoại ngữ',
     language: 'en',
     visibility: Visibility.PUBLIC,
     cards: IELTS_CARDS,
@@ -152,12 +152,12 @@ async function main(): Promise<void> {
 
   await seedSet({
     ownerId: an.id,
-    title: 'Ghi chu rieng - chua chia se',
-    description: 'Bo the private, dung de kiem tra phan quyen.',
-    subject: 'Khac',
+    title: 'Ghi chú riêng - chưa chia sẻ',
+    description: 'Bộ thẻ private, dùng để kiểm tra phân quyền.',
+    subject: 'Khác',
     language: 'vi',
     visibility: Visibility.PRIVATE,
-    cards: [['bi mat', 'Chi chu so huu doc duoc']],
+    cards: [['bí mật', 'Chỉ chủ sở hữu đọc được']],
   });
 
   console.log('Seed xong.');

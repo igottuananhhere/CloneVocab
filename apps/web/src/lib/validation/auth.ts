@@ -4,16 +4,16 @@ import { z } from 'zod';
  * Chi kiem tra o phia client de bao loi som. Supabase Auth van la noi thuc thi that su -
  * chinh sach mat khau cau hinh trong supabase/config.toml.
  */
-export const emailSchema = z.string().trim().min(1, 'Vui long nhap email').email('Email khong hop le');
+export const emailSchema = z.string().trim().min(1, 'Vui lòng nhập email').email('Email không hợp lệ');
 
 export const passwordSchema = z
   .string()
-  .min(8, 'Mat khau phai co it nhat 8 ky tu')
-  .max(72, 'Mat khau toi da 72 ky tu');
+  .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+  .max(72, 'Mật khẩu tối đa 72 ký tự');
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, 'Vui long nhap mat khau'),
+  password: z.string().min(1, 'Vui lòng nhập mật khẩu'),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
@@ -25,7 +25,7 @@ export const registerSchema = z
   })
   .refine((value) => value.password === value.confirmPassword, {
     path: ['confirmPassword'],
-    message: 'Mat khau nhap lai khong khop',
+    message: 'Mật khẩu nhập lại không khớp',
   });
 export type RegisterInput = z.infer<typeof registerSchema>;
 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { apiServer } from '@/lib/api/server';
 
 export const metadata: Metadata = {
-  title: 'Cai dat',
+  title: 'Cài đặt',
   robots: { index: false, follow: false },
 };
 
@@ -16,13 +16,13 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-3xl font-bold tracking-tight">Cai dat</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Cài đặt</h1>
 
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle>Ho so cong khai</CardTitle>
+          <CardTitle>Hồ sơ công khai</CardTitle>
           <CardDescription>
-            Nhung thong tin nay hien tren trang /u/{me.username} ma ai cung xem duoc.
+            Những thông tin này hiện trên trang /u/{me.username} mà ai cũng xem được.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -32,13 +32,13 @@ export default async function SettingsPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Tai khoan</CardTitle>
-          <CardDescription>Thong tin dang nhap do Supabase Auth quan ly.</CardDescription>
+          <CardTitle>Tài khoản</CardTitle>
+          <CardDescription>Thông tin đăng nhập do Supabase Auth quản lý.</CardDescription>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-1 text-sm">
             <dt className="text-muted-foreground">Email</dt>
-            <dd className="font-medium">{me.email ?? 'Khong co'}</dd>
+            <dd className="font-medium">{me.email ?? 'Không có'}</dd>
           </dl>
         </CardContent>
       </Card>

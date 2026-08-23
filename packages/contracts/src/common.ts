@@ -26,4 +26,4 @@ export type Paginated<T> = {
   totalPages: number;
 };
 
-export const uuidSchema = z.string().uuid('Gia tri phai la UUID hop le');
+export const uuidSchema = z.string().uuid('Giá trị phải là UUID hợp lệ');

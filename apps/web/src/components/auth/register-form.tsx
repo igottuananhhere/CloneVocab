@@ -66,9 +66,9 @@ export function RegisterForm() {
   if (awaitingConfirmation) {
     return (
       <Alert tone="success">
-        <p className="font-medium">Kiem tra hop thu cua ban</p>
+        <p className="font-medium">Kiểm tra hộp thư của bạn</p>
         <p className="mt-1">
-          Chung toi vua gui mot lien ket xac nhan. Mo lien ket do de kich hoat tai khoan.
+          Chúng tôi vừa gửi một liên kết xác nhận. Mở liên kết đó để kích hoạt tài khoản.
         </p>
       </Alert>
     );
@@ -92,8 +92,8 @@ export function RegisterForm() {
 
         <Field
           id="password"
-          label="Mat khau"
-          hint="It nhat 8 ky tu"
+          label="Mật khẩu"
+          hint="Ít nhất 8 ký tự"
           error={errors.password}
         >
           <Input
@@ -105,7 +105,7 @@ export function RegisterForm() {
           />
         </Field>
 
-        <Field id="confirmPassword" label="Nhap lai mat khau" error={errors.confirmPassword}>
+        <Field id="confirmPassword" label="Nhập lại mật khẩu" error={errors.confirmPassword}>
           <Input
             name="confirmPassword"
             type="password"
@@ -116,22 +116,22 @@ export function RegisterForm() {
         </Field>
 
         <Button type="submit" block disabled={submitting}>
-          {submitting ? 'Dang tao tai khoan...' : 'Tao tai khoan'}
+          {submitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
         </Button>
       </form>
 
       <div className="flex items-center gap-3" aria-hidden="true">
         <span className="h-px flex-1 bg-border" />
-        <span className="text-xs text-muted-foreground">hoac</span>
+        <span className="text-xs text-muted-foreground">hoặc</span>
         <span className="h-px flex-1 bg-border" />
       </div>
 
       <GoogleButton onError={setFormError} />
 
       <p className="text-center text-sm text-muted-foreground">
-        Da co tai khoan?{' '}
+        Đã có tài khoản?{' '}
         <Link href="/login" className="font-medium text-primary hover:underline">
-          Dang nhap
+          Đăng nhập
         </Link>
       </p>
     </div>

@@ -41,7 +41,7 @@ export class SupabaseAuthGuard implements CanActivate {
     }
 
     if (!token) {
-      throw new UnauthorizedException('Yeu cau nay can dang nhap.');
+      throw new UnauthorizedException('Yêu cầu này cần đăng nhập.');
     }
 
     request.user = await this.jwt.verify(token);
