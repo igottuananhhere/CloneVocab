@@ -1,0 +1,46 @@
+{
+  "name": "@flashcard/db",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "prisma"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "postinstall": "prisma generate",
+    "generate": "prisma generate",
+    "migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "migrate:create": "dotenv -e ../../.env -- prisma migrate dev --create-only",
+    "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "reset": "dotenv -e ../../.env -- prisma migrate reset --force",
+    "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "studio": "dotenv -e ../../.env -- prisma studio",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist .turbo *.tsbuildinfo"
+  },
+  "prisma": {
+    "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.2.1"
+  },
+  "devDependencies": {
+    "@flashcard/config": "workspace:*",
+    "@types/node": "^22.10.5",
+    "dotenv-cli": "^8.0.0",
+    "prisma": "^6.2.1",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

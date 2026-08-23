@@ -1,0 +1,28 @@
+# Netlify chi deploy apps/web. NestJS API duoc deploy rieng (xem apps/api/Dockerfile).
+
+[build]
+  # Turbo build ca @flashcard/contracts va @flashcard/db truoc, roi moi den web.
+  command = "pnpm turbo run build --filter=@flashcard/web..."
+  publish = "apps/web/.next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_VERSION = "9.15.5"
+  # Prisma chi can sinh client de lay type; khong ket noi database luc build.
+  PRISMA_SKIP_POSTINSTALL_GENERATE = "false"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Deploy preview cua tung pull request khong duoc de cong cu tim kiem lap chi muc.
+[context.deploy-preview]
+  [context.deploy-preview.environment]
+    NEXT_PUBLIC_ROBOTS_DISALLOW = "true"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"

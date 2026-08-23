@@ -1,0 +1,16 @@
+# Chuan hoa xuong dong: LF trong repo, tra ve dung kieu cua he dieu hanh khi checkout.
+# Khong co dong nay thi CRLF cua Windows tron vao repo va moi diff deu day tieng on.
+* text=auto eol=lf
+
+# File nhi phan: khong dung dong vao.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# Lockfile do cong cu sinh ra: an bot trong diff cua pull request.
+pnpm-lock.yaml linguist-generated=true -diff

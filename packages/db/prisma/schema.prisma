@@ -1,0 +1,241 @@
+// ---------------------------------------------------------------------------
+// Prisma so huu TOAN BO schema `public`.
+// Schema `auth` thuoc ve Supabase GoTrue va KHONG duoc mo hinh hoa o day.
+// Rang buoc khoa ngoai profiles.id -> auth.users.id nam trong migration SQL thu cong
+// (xem prisma/migrations/*_supabase_bindings/migration.sql).
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
+enum ReportReason {
+  SPAM
+  INAPPROPRIATE
+  COPYRIGHT
+  MISINFORMATION
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+/// Ho so cong khai cua nguoi dung. id trung voi auth.users.id cua Supabase.
+/// Tach rieng khoi auth.users de lo thong tin cong khai ma khong cham vao bang auth.
+model Profile {
+  id          String   @id @db.Uuid
+  username    String   @unique @db.VarChar(30)
+  displayName String?  @map("display_name") @db.VarChar(60)
+  avatarUrl   String?  @map("avatar_url") @db.Text
+  bio         String?  @db.VarChar(280)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  studySets     StudySet[]
+  folders       Folder[]
+  savedSets     SavedSet[]
+  studyProgress StudyProgress[]
+  testResults   TestResult[]
+  matchResults  MatchResult[]
+  reportsFiled  ContentReport[] @relation("ReportsFiled")
+
+  @@map("profiles")
+}
+
+/// Bo the ghi nho. Don vi noi dung goc ma moi che do hoc deu xoay quanh.
+model StudySet {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId     String     @map("owner_id") @db.Uuid
+  title       String     @db.VarChar(120)
+  description String?    @db.VarChar(1000)
+  subject     String?    @db.VarChar(60)
+  language    String     @default("vi") @db.VarChar(10)
+  visibility  Visibility @default(PRIVATE)
+  /// Phi chuan hoa co chu dich: trang Explore liet ke hang tram bo the va can so the
+  /// ma khong phai COUNT tren bang flashcards. Trigger trong DB giu cot nay dong bo.
+  cardCount   Int        @default(0) @map("card_count")
+  viewCount   Int        @default(0) @map("view_count")
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  /// Cot tsvector sinh tu title + description + subject trong migration SQL, phuc vu
+  /// full-text search o P2. Prisma khong ho tro kieu nay nen phai khai bao Unsupported.
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  owner        Profile          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  flashcards   Flashcard[]
+  folderLinks  FolderStudySet[]
+  savedBy      SavedSet[]
+  testResults  TestResult[]
+  matchResults MatchResult[]
+  reports      ContentReport[]
+
+  @@index([ownerId])
+  @@index([visibility, createdAt(sort: Desc)])
+  @@index([subject])
+  @@map("study_sets")
+}
+
+/// Mot the hai mat trong bo the.
+model Flashcard {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studySetId String   @map("study_set_id") @db.Uuid
+  term       String   @db.VarChar(500)
+  definition String   @db.VarChar(2000)
+  /// Duong dan trong Supabase Storage, vi du "userId/setId/uuid.webp". Khong luu URL day
+  /// du de doi bucket hoac domain sau nay khong phai migrate du lieu.
+  imagePath  String?  @map("image_path") @db.Text
+  position   Int
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  studySet StudySet        @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+  progress StudyProgress[]
+
+  @@index([studySetId, position])
+  @@map("flashcards")
+}
+
+/// Thu muc ca nhan de gom nhom bo the. Chi chu so huu nhin thay.
+model Folder {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId     String   @map("owner_id") @db.Uuid
+  name        String   @db.VarChar(80)
+  description String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner Profile          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  links FolderStudySet[]
+
+  @@unique([ownerId, name])
+  @@index([ownerId])
+  @@map("folders")
+}
+
+model FolderStudySet {
+  folderId   String   @map("folder_id") @db.Uuid
+  studySetId String   @map("study_set_id") @db.Uuid
+  addedAt    DateTime @default(now()) @map("added_at") @db.Timestamptz(6)
+
+  folder   Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  studySet StudySet @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+
+  @@id([folderId, studySetId])
+  @@index([studySetId])
+  @@map("folder_study_sets")
+}
+
+/// Bo the cua nguoi khac ma nguoi dung danh dau de hoc lai (muc "da luu" o dashboard).
+model SavedSet {
+  userId     String   @map("user_id") @db.Uuid
+  studySetId String   @map("study_set_id") @db.Uuid
+  savedAt    DateTime @default(now()) @map("saved_at") @db.Timestamptz(6)
+
+  user     Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studySet StudySet @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+
+  @@id([userId, studySetId])
+  @@index([studySetId])
+  @@map("saved_sets")
+}
+
+/// Bang loi cua spaced repetition: moi cap (nguoi dung, the) mot dong.
+model StudyProgress {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  flashcardId    String    @map("flashcard_id") @db.Uuid
+  /// 0 = chua hoc. Tang dan theo bac khoang cach on tap: 1d, 3d, 7d, 16d, 35d.
+  masteryLevel   Int       @default(0) @map("mastery_level")
+  correctCount   Int       @default(0) @map("correct_count")
+  incorrectCount Int       @default(0) @map("incorrect_count")
+  /// So lan dung lien tiep gan nhat. Tra loi sai dat lai ve 0.
+  streak         Int       @default(0)
+  lastReviewedAt DateTime? @map("last_reviewed_at") @db.Timestamptz(6)
+  nextReviewAt   DateTime? @map("next_review_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user      Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcard Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, flashcardId])
+  @@index([userId, nextReviewAt])
+  @@map("study_progress")
+}
+
+/// Ket qua mot lan lam bai Test.
+model TestResult {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  studySetId   String   @map("study_set_id") @db.Uuid
+  correctCount Int      @map("correct_count")
+  totalCount   Int      @map("total_count")
+  /// Diem phan tram 0-100, luu san de sap xep va ve bieu do khong phai tinh lai.
+  scorePercent Decimal  @map("score_percent") @db.Decimal(5, 2)
+  durationMs   Int?     @map("duration_ms")
+  /// Chi tiet tung cau: [{ flashcardId, questionType, answer, correct }]
+  detail       Json     @db.JsonB
+  takenAt      DateTime @default(now()) @map("taken_at") @db.Timestamptz(6)
+
+  user     Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studySet StudySet @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+
+  @@index([userId, takenAt(sort: Desc)])
+  @@index([studySetId])
+  @@map("test_results")
+}
+
+/// Ky luc mot van choi Match.
+model MatchResult {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  studySetId String   @map("study_set_id") @db.Uuid
+  /// Luu bang mili giay de bang xep hang phan biet duoc cac van sat nhau.
+  durationMs Int      @map("duration_ms")
+  pairCount  Int      @map("pair_count")
+  playedAt   DateTime @default(now()) @map("played_at") @db.Timestamptz(6)
+
+  user     Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studySet StudySet @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+
+  @@index([studySetId, durationMs])
+  @@index([userId, playedAt(sort: Desc)])
+  @@map("match_results")
+}
+
+/// Bao cao noi dung vi pham. MVP chi ghi nhan va gui thong bao cho admin.
+model ContentReport {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studySetId String       @map("study_set_id") @db.Uuid
+  /// Null khi nguoi bao cao chua dang nhap.
+  reporterId String?      @map("reporter_id") @db.Uuid
+  reason     ReportReason
+  note       String?      @db.VarChar(1000)
+  status     ReportStatus @default(OPEN)
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt DateTime?    @map("resolved_at") @db.Timestamptz(6)
+
+  studySet StudySet @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+  reporter Profile? @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([studySetId])
+  @@map("content_reports")
+}
