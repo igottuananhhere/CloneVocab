@@ -95,10 +95,10 @@ export function FlipClient({
           <Button onClick={() => setFlipped(true)}>Lật thẻ</Button>
         ) : (
           <>
-            <Button variant="outline" onClick={() => record(false)}>
+            <Button variant="outline" disabled={saving} onClick={() => record(false)}>
               Chưa thuộc
             </Button>
-            <Button onClick={() => record(true)}>Đã thuộc</Button>
+            <Button disabled={saving} onClick={() => record(true)}>Đã thuộc</Button>
           </>
         )}
       </div>

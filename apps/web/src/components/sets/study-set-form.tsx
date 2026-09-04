@@ -16,7 +16,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { apiBrowser } from '@/lib/api/browser';
 import { ApiRequestError } from '@/lib/api/request';
-import { cn } from '@/lib/utils';
 
 type CardDraft = { term: string; definition: string };
 

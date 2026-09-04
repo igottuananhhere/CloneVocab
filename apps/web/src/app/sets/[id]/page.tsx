@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import type { StudySetDetail } from '@flashcard/contracts';
 import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { DeleteSetButton } from '@/components/sets/delete-set-button';
 import { SaveSetButton } from '@/components/sets/save-set-button';
 import { apiServer } from '@/lib/api/server';
