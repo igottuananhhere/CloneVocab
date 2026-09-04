@@ -23,12 +23,83 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const activeTab = params.tab === 'saved' ? 'saved' : 'mine';
 
-  const [me, sets, savedSets, stats] = await Promise.all([
-    apiServer<MeProfile>('/profiles/me'),
-    apiServer<StudySetSummary[]>('/study-sets/mine'),
-    apiServer<StudySetSummary[]>('/study-sets/saved'),
-    apiServer<StudyStats>('/study/stats'),
-  ]);
+  let me: MeProfile | null = null;
+  let sets: StudySetSummary[] = [];
+  let savedSets: StudySetSummary[] = [];
+  let stats: StudyStats = {
+    studiedCards: 0,
+    masteredCards: 0,
+    dueToday: 0,
+    testCount: 0,
+    matchBestMs: null,
+  };
+  let connectionError: string | null = null;
+
+  try {
+    const [fetchedMe, fetchedSets, fetchedSavedSets, fetchedStats] = await Promise.all([
+      apiServer<MeProfile>('/profiles/me'),
+      apiServer<StudySetSummary[]>('/study-sets/mine'),
+      apiServer<StudySetSummary[]>('/study-sets/saved'),
+      apiServer<StudyStats>('/study/stats'),
+    ]);
+    me = fetchedMe;
+    sets = fetchedSets;
+    savedSets = fetchedSavedSets;
+    stats = fetchedStats;
+  } catch (error) {
+    connectionError =
+      error instanceof Error ? error.message : 'Không kết nối được tới máy chủ Backend API.';
+  }
+
+  if (connectionError || !me) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16">
+        <div className="space-y-4 rounded-xl border border-destructive/30 bg-destructive/5 p-8">
+          <h2 className="text-xl font-bold text-destructive">
+            Chưa kết nối được với máy chủ Backend API
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Bạn đã đăng nhập thành công vào tài khoản Supabase! Tuy nhiên, trang Bảng điều khiển
+            cần lấy dữ liệu hồ sơ và bộ thẻ từ <strong>Backend API (NestJS)</strong>.
+          </p>
+          <div className="rounded-md bg-muted p-3 font-mono text-xs">
+            Địa chỉ API đang trỏ tới:{' '}
+            <span className="font-semibold text-foreground">
+              {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}
+            </span>
+          </div>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Hướng dẫn khắc phục:</p>
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                <strong>Nếu đang test trên máy (Local):</strong> Mở terminal và chạy lệnh{' '}
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">pnpm dev</code>,
+                sau đó truy cập{' '}
+                <a href="http://localhost:3000" className="text-primary hover:underline">
+                  http://localhost:3000
+                </a>
+                .
+              </li>
+              <li>
+                <strong>Nếu đang dùng trên Netlify (Production):</strong> Cần deploy{' '}
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">apps/api</code>{' '}
+                lên dịch vụ hosting (Render hoặc Railway) và cấu hình biến{' '}
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                  NEXT_PUBLIC_API_URL
+                </code>{' '}
+                trên Netlify.
+              </li>
+            </ul>
+          </div>
+          <div className="pt-2">
+            <Link href="/" className={buttonVariants({ variant: 'outline' })}>
+              ← Về trang chủ
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const displayName = me.displayName ?? me.username;
 
