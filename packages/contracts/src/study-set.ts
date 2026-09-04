@@ -72,11 +72,17 @@ export const studySetSummarySchema = z.object({
 });
 export type StudySetSummary = z.infer<typeof studySetSummarySchema>;
 
-/** Chi tiet mot bo the, kem danh sach the theo dung thu tu. */
+/** Chi tiet mot bo the, kem danh sach the theo dung thu tu va trang thai da luu. */
 export const studySetDetailSchema = studySetSummarySchema.extend({
   flashcards: z.array(flashcardSchema),
+  isSaved: z.boolean().default(false),
 });
 export type StudySetDetail = z.infer<typeof studySetDetailSchema>;
+
+export const saveStudySetResponseSchema = z.object({
+  saved: z.boolean(),
+});
+export type SaveStudySetResponse = z.infer<typeof saveStudySetResponseSchema>;
 
 export type StudySetListQuery = {
   ownerUsername?: string;

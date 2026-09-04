@@ -12,6 +12,7 @@ import type { StudySetDetail } from '@flashcard/contracts';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DeleteSetButton } from '@/components/sets/delete-set-button';
+import { SaveSetButton } from '@/components/sets/save-set-button';
 import { apiServer } from '@/lib/api/server';
 import { createClient } from '@/lib/supabase/server';
 import { ApiRequestError } from '@/lib/api/request';
@@ -80,17 +81,26 @@ export default async function StudySetPage({ params }: PageProps) {
       <header className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-3xl font-bold tracking-tight">{set.title}</h1>
-          {isOwner && (
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/sets/${set.id}/edit`}
-                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-              >
-                Chỉnh sửa
-              </Link>
-              <DeleteSetButton setId={set.id} title={set.title} />
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {!isOwner && (
+              <SaveSetButton
+                setId={set.id}
+                initialSaved={Boolean(set.isSaved)}
+                isLoggedIn={Boolean(user)}
+              />
+            )}
+            {isOwner && (
+              <>
+                <Link
+                  href={`/sets/${set.id}/edit`}
+                  className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                >
+                  Chỉnh sửa
+                </Link>
+                <DeleteSetButton setId={set.id} title={set.title} />
+              </>
+            )}
+          </div>
         </div>
 
         {set.description && <p className="text-muted-foreground">{set.description}</p>}

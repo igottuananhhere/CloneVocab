@@ -206,7 +206,82 @@ export class StudySetsService {
       row.viewCount += 1;
     }
 
-    return toDetail(row);
+    let isSaved = false;
+    if (viewerId) {
+      const saved = await this.prisma.client.savedSet.findUnique({
+        where: {
+          userId_studySetId: {
+            userId: viewerId,
+            studySetId: id,
+          },
+        },
+      });
+      isSaved = Boolean(saved);
+    }
+
+    return toDetail(row, isSaved);
+  }
+
+  /** Luu bo the vao danh sach da luu cua nguoi dung. */
+  async save(setId: string, user: AuthenticatedUser): Promise<{ saved: boolean }> {
+    const set = await this.prisma.client.studySet.findUnique({
+      where: { id: setId },
+      select: { id: true, visibility: true, ownerId: true },
+    });
+
+    if (!set) {
+      throw new NotFoundException('Không tìm thấy bộ thẻ.');
+    }
+
+    if (set.visibility === 'PRIVATE' && set.ownerId !== user.id) {
+      throw new NotFoundException('Không tìm thấy bộ thẻ.');
+    }
+
+    await this.prisma.client.savedSet.upsert({
+      where: {
+        userId_studySetId: {
+          userId: user.id,
+          studySetId: setId,
+        },
+      },
+      create: {
+        userId: user.id,
+        studySetId: setId,
+      },
+      update: {},
+    });
+
+    return { saved: true };
+  }
+
+  /** Bo luu bo the. */
+  async unsave(setId: string, user: AuthenticatedUser): Promise<{ saved: boolean }> {
+    await this.prisma.client.savedSet.deleteMany({
+      where: {
+        userId: user.id,
+        studySetId: setId,
+      },
+    });
+
+    return { saved: false };
+  }
+
+  /** Danh sach cac bo the nguoi dung da luu. */
+  async listSaved(user: AuthenticatedUser): Promise<StudySetSummary[]> {
+    const rows = await this.prisma.client.savedSet.findMany({
+      where: { userId: user.id },
+      include: {
+        studySet: {
+          include: SUMMARY_INCLUDE,
+        },
+      },
+      orderBy: { savedAt: 'desc' },
+    });
+
+    return rows
+      .map((r) => r.studySet)
+      .filter((s) => s.visibility !== 'PRIVATE' || s.ownerId === user.id)
+      .map(toSummary);
   }
 
   async update(
@@ -308,7 +383,7 @@ function toSummary(row: SummaryRow): StudySetSummary {
   };
 }
 
-function toDetail(row: DetailRow): StudySetDetail {
+function toDetail(row: DetailRow, isSaved: boolean = false): StudySetDetail {
   return {
     ...toSummary(row),
     flashcards: row.flashcards.map((card) => ({
@@ -319,5 +394,6 @@ function toDetail(row: DetailRow): StudySetDetail {
       imagePath: card.imagePath,
       position: card.position,
     })),
+    isSaved,
   };
 }

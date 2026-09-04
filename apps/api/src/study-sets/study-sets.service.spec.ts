@@ -10,6 +10,7 @@ function makeService(delegates: {
   studySet?: Delegate;
   profile?: Delegate;
   flashcard?: Delegate;
+  savedSet?: Delegate;
   transaction?: unknown;
 }): StudySetsService {
   const prisma = {
@@ -17,6 +18,12 @@ function makeService(delegates: {
       studySet: delegates.studySet ?? {},
       profile: delegates.profile ?? {},
       flashcard: delegates.flashcard ?? {},
+      savedSet: delegates.savedSet ?? {
+        findUnique: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+        upsert: vi.fn().mockResolvedValue({}),
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
       $transaction: delegates.transaction ?? vi.fn(),
     },
   } as unknown as PrismaService;
@@ -220,6 +227,98 @@ describe('StudySetsService', () => {
           take: 5,
         }),
       );
+    });
+  });
+
+  describe('save & unsave & listSaved', () => {
+    it('cho phep luu bo the hop le', async () => {
+      const upsert = vi.fn().mockResolvedValue({});
+      const service = makeService({
+        studySet: { findUnique: vi.fn().mockResolvedValue({ id: baseSet.id, visibility: 'PUBLIC', ownerId: owner.id }) },
+        savedSet: { upsert },
+      });
+
+      const result = await service.save(baseSet.id, stranger);
+      expect(result).toEqual({ saved: true });
+      expect(upsert).toHaveBeenCalledWith({
+        where: {
+          userId_studySetId: {
+            userId: stranger.id,
+            studySetId: baseSet.id,
+          },
+        },
+        create: {
+          userId: stranger.id,
+          studySetId: baseSet.id,
+        },
+        update: {},
+      });
+    });
+
+    it('tra 404 khi luu bo the private cua nguoi khac', async () => {
+      const service = makeService({
+        studySet: { findUnique: vi.fn().mockResolvedValue({ id: baseSet.id, visibility: 'PRIVATE', ownerId: owner.id }) },
+      });
+
+      await expect(service.save(baseSet.id, stranger)).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('cho phep bo luu bo the', async () => {
+      const deleteMany = vi.fn().mockResolvedValue({ count: 1 });
+      const service = makeService({
+        savedSet: { deleteMany },
+      });
+
+      const result = await service.unsave(baseSet.id, stranger);
+      expect(result).toEqual({ saved: false });
+      expect(deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId: stranger.id,
+          studySetId: baseSet.id,
+        },
+      });
+    });
+
+    it('liet ke cac bo the da luu cua nguoi dung', async () => {
+      const findMany = vi.fn().mockResolvedValue([
+        {
+          savedAt: new Date(),
+          studySet: {
+            ...baseSet,
+            visibility: 'PUBLIC',
+            owner: { id: owner.id, username: 'an-nguyen', displayName: 'An' },
+          },
+        },
+      ]);
+      const service = makeService({
+        savedSet: { findMany },
+      });
+
+      const list = await service.listSaved(stranger);
+      expect(list).toHaveLength(1);
+      expect(list[0]?.id).toBe(baseSet.id);
+    });
+  });
+
+  describe('getById with isSaved', () => {
+    it('tra ve isSaved = true neu nguoi xem da luu bo the', async () => {
+      const service = makeService({
+        studySet: {
+          findUnique: vi.fn().mockResolvedValue({
+            ...baseSet,
+            visibility: 'PUBLIC',
+            owner: { id: owner.id, username: 'an-nguyen', displayName: 'An' },
+            flashcards: [],
+          }),
+          update: vi.fn().mockResolvedValue(null),
+        },
+        savedSet: {
+          findUnique: vi.fn().mockResolvedValue({ userId: stranger.id, studySetId: baseSet.id }),
+        },
+      });
+
+      const detail = await service.getById(baseSet.id, stranger.id);
+      expect(detail.isSaved).toBe(true);
     });
   });
 });

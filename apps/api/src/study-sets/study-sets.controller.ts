@@ -38,10 +38,15 @@ export class StudySetsController {
     return this.studySets.create(user, input);
   }
 
-  /** Dat truoc route ':id' - neu khong Nest se khop 'mine' nhu mot id. */
+  /** Dat truoc route ':id' - neu khong Nest se khop 'mine' hoac 'saved' nhu mot id. */
   @Get('mine')
   listMine(@CurrentUser() user: AuthenticatedUser): Promise<StudySetSummary[]> {
     return this.studySets.listMine(user);
+  }
+
+  @Get('saved')
+  listSaved(@CurrentUser() user: AuthenticatedUser): Promise<StudySetSummary[]> {
+    return this.studySets.listSaved(user);
   }
 
   @Public()
@@ -68,6 +73,22 @@ export class StudySetsController {
     @CurrentUser() user?: AuthenticatedUser,
   ): Promise<StudySetDetail> {
     return this.studySets.getById(id, user?.id);
+  }
+
+  @Post(':id/save')
+  save(
+    @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ saved: boolean }> {
+    return this.studySets.save(id, user);
+  }
+
+  @Delete(':id/save')
+  unsave(
+    @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ saved: boolean }> {
+    return this.studySets.unsave(id, user);
   }
 
   @Patch(':id')
