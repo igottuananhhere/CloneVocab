@@ -5,6 +5,7 @@ import type { LearnItem } from '@flashcard/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { apiBrowser } from '@/lib/api/browser';
+import { flashcardImageUrl } from '@/lib/flashcard-image';
 import { cn } from '@/lib/utils';
 
 const OPTION_CLASS =
@@ -89,6 +90,16 @@ export function LearnClient({ setId, items }: { setId: string; items: LearnItem[
       </p>
       <Card>
         <CardContent className="space-y-4 pt-6">
+          {item.imagePath && (
+            <div className="max-h-48 max-w-xs overflow-hidden rounded-lg border border-border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={flashcardImageUrl(item.imagePath) || ''}
+                alt={item.prompt}
+                className="max-h-48 w-auto object-contain"
+              />
+            </div>
+          )}
           <p className="text-xl font-semibold">{item.prompt}</p>
 
           <ul className="grid gap-2">
