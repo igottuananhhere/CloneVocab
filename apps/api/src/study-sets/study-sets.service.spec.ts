@@ -161,5 +161,65 @@ describe('StudySetsService', () => {
         NotFoundException,
       );
     });
+
+    it('chuyen sang explore khi khong truyen ownerUsername', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const count = vi.fn().mockResolvedValue(0);
+      const service = makeService({
+        studySet: { findMany, count },
+      });
+
+      const result = await service.list({ q: 'tieng anh', sort: 'popular', page: 1, limit: 10 });
+
+      expect(count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            visibility: 'PUBLIC',
+            OR: expect.arrayContaining([
+              expect.objectContaining({ title: { contains: 'tieng anh', mode: 'insensitive' } }),
+            ]),
+          }),
+        }),
+      );
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { viewCount: 'desc' },
+          skip: 0,
+          take: 10,
+        }),
+      );
+      expect('totalPages' in result).toBe(true);
+    });
+  });
+
+  describe('explore', () => {
+    it('tinh dung totalPages va tra ve phan trang chuan', async () => {
+      const fakeSets = Array.from({ length: 5 }, (_, i) => ({
+        ...baseSet,
+        id: `set-${i}`,
+        visibility: 'PUBLIC',
+        owner: { id: owner.id, username: 'an-nguyen', displayName: 'An' },
+      }));
+
+      const findMany = vi.fn().mockResolvedValue(fakeSets);
+      const count = vi.fn().mockResolvedValue(25);
+      const service = makeService({
+        studySet: { findMany, count },
+      });
+
+      const result = await service.explore({ page: 2, limit: 5 });
+
+      expect(result.total).toBe(25);
+      expect(result.page).toBe(2);
+      expect(result.limit).toBe(5);
+      expect(result.totalPages).toBe(5);
+      expect(result.items).toHaveLength(5);
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 5,
+          take: 5,
+        }),
+      );
+    });
   });
 });

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   type CreateStudySetInput,
+  type PaginatedStudySets,
   type StudySetDetail,
   type StudySetListQuery,
   type StudySetSummary,
@@ -71,15 +72,36 @@ export class StudySetsService {
   }
 
   /**
+   * Liet ke bo the - hoac theo nguoi dung cu the (trang /u/[username]),
+   * hoac kham pha toan bo bo the cong khai (trang /explore).
+   */
+  async list(query: StudySetListQuery): Promise<StudySetSummary[] | PaginatedStudySets> {
+    if (query.ownerUsername) {
+      return this.listByOwner({
+        ownerUsername: query.ownerUsername,
+        subject: query.subject,
+        viewerId: query.viewerId,
+      });
+    }
+
+    return this.explore({
+      q: query.q,
+      subject: query.subject,
+      sort: query.sort,
+      page: query.page,
+      limit: query.limit,
+    });
+  }
+
+  /**
    * Liet ke bo the cong khai cua mot nguoi dung (trang /u/[username]).
    * Nguoi la chi thay bo the PUBLIC; chinh chu so huu xem duoc ca PRIVATE/UNLISTED.
    */
-  async list(query: StudySetListQuery): Promise<StudySetSummary[]> {
-    if (!query.ownerUsername) {
-      // Chua co feed toan cuc (thuoc Explore, P2). Khong tra ve gi ca.
-      return [];
-    }
-
+  async listByOwner(query: {
+    ownerUsername: string;
+    subject?: string;
+    viewerId?: string;
+  }): Promise<StudySetSummary[]> {
     const owner = await this.prisma.client.profile.findUnique({
       where: { username: query.ownerUsername.toLowerCase() },
       select: { id: true },
@@ -102,6 +124,58 @@ export class StudySetsService {
     });
 
     return rows.map(toSummary);
+  }
+
+  /**
+   * Kham pha va tim kiem bo the cong khai: loc theo mon hoc, tim theo tu khoa,
+   * sap xep theo moi nhat/pho bien va phan trang.
+   */
+  async explore(query: {
+    q?: string;
+    subject?: string;
+    sort?: 'latest' | 'popular';
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedStudySets> {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(50, Math.max(1, query.limit ?? 12));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.StudySetWhereInput = {
+      visibility: 'PUBLIC' as Visibility,
+      ...(query.subject ? { subject: { equals: query.subject, mode: 'insensitive' } } : {}),
+      ...(query.q
+        ? {
+            OR: [
+              { title: { contains: query.q, mode: 'insensitive' } },
+              { description: { contains: query.q, mode: 'insensitive' } },
+              { subject: { contains: query.q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const orderBy: Prisma.StudySetOrderByWithRelationInput =
+      query.sort === 'popular' ? { viewCount: 'desc' } : { updatedAt: 'desc' };
+
+    const [total, rows] = await Promise.all([
+      this.prisma.client.studySet.count({ where }),
+      this.prisma.client.studySet.findMany({
+        where,
+        include: SUMMARY_INCLUDE,
+        orderBy,
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    return {
+      items: rows.map(toSummary),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 
   /**

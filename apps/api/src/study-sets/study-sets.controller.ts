@@ -10,9 +10,12 @@ import {
 } from '@nestjs/common';
 import {
   createStudySetSchema,
+  listStudySetsQuerySchema,
   updateStudySetSchema,
   uuidSchema,
   type CreateStudySetInput,
+  type ListStudySetsQuery,
+  type PaginatedStudySets,
   type StudySetDetail,
   type StudySetSummary,
   type UpdateStudySetInput,
@@ -44,13 +47,16 @@ export class StudySetsController {
   @Public()
   @Get()
   list(
-    @Query('owner') owner?: string,
-    @Query('subject') subject?: string,
+    @Query(new ZodValidationPipe(listStudySetsQuerySchema)) query: ListStudySetsQuery,
     @CurrentUser() user?: AuthenticatedUser,
-  ): Promise<StudySetSummary[]> {
+  ): Promise<StudySetSummary[] | PaginatedStudySets> {
     return this.studySets.list({
-      ownerUsername: owner,
-      subject,
+      ownerUsername: query.owner,
+      q: query.q,
+      subject: query.subject,
+      sort: query.sort,
+      page: query.page,
+      limit: query.limit,
       viewerId: user?.id,
     });
   }

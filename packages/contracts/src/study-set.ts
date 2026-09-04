@@ -80,6 +80,29 @@ export type StudySetDetail = z.infer<typeof studySetDetailSchema>;
 
 export type StudySetListQuery = {
   ownerUsername?: string;
+  q?: string;
   subject?: string;
+  sort?: 'latest' | 'popular';
+  page?: number;
+  limit?: number;
   viewerId?: string;
 };
+
+export const listStudySetsQuerySchema = z.object({
+  owner: z.string().trim().optional(),
+  q: z.string().trim().optional(),
+  subject: z.string().trim().optional(),
+  sort: z.enum(['latest', 'popular']).default('latest'),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(12),
+});
+export type ListStudySetsQuery = z.infer<typeof listStudySetsQuerySchema>;
+
+export const paginatedStudySetsSchema = z.object({
+  items: z.array(studySetSummarySchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  limit: z.number().int(),
+  totalPages: z.number().int(),
+});
+export type PaginatedStudySets = z.infer<typeof paginatedStudySetsSchema>;
