@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { Profile } from '@flashcard/contracts';
-import { Alert } from '@/components/ui/alert';
-import { Card, CardContent } from '@/components/ui/card';
+import type { Profile, StudySetSummary } from '@flashcard/contracts';
+import { StudySetCard } from '@/components/sets/study-set-card';
 import { apiRequest, ApiRequestError } from '@/lib/api/request';
 import { formatDate } from '@/lib/utils';
 
@@ -20,6 +20,20 @@ async function loadProfile(username: string): Promise<Profile | null> {
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 404) {
       return null;
+    }
+    throw error;
+  }
+}
+
+async function loadPublicSets(username: string): Promise<StudySetSummary[]> {
+  try {
+    return await apiRequest<StudySetSummary[]>(
+      `/study-sets?owner=${encodeURIComponent(username)}`,
+      { next: { revalidate: 60 } },
+    );
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 404) {
+      return [];
     }
     throw error;
   }
@@ -56,6 +70,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
   }
 
   const name = profile.displayName ?? profile.username;
+  const sets = await loadPublicSets(profile.username);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -76,14 +91,26 @@ export default async function PublicProfilePage({ params }: PageProps) {
         </div>
       </header>
 
-      <Card className="mt-8">
-        <CardContent className="pt-6">
-          <h2 className="text-lg font-semibold">Bộ thẻ công khai</h2>
-          <Alert className="mt-4">
-            Danh sách bộ thẻ sẽ hiện ở đây khi API bộ thẻ hoàn thành ở giai đoạn 2.
-          </Alert>
-        </CardContent>
-      </Card>
+      <section className="mt-8" aria-labelledby="sets-heading">
+        <h2 id="sets-heading" className="text-lg font-semibold">
+          Bộ thẻ công khai
+          <span className="ml-2 text-base font-normal text-muted-foreground">{sets.length}</span>
+        </h2>
+
+        {sets.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            {name} chưa chia sẻ bộ thẻ công khai nào.
+          </p>
+        ) : (
+          <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+            {sets.map((set) => (
+              <li key={set.id}>
+                <StudySetCard set={set} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

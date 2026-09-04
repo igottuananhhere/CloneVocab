@@ -20,7 +20,13 @@
   --muted: 220 14% 96%;
   --muted-foreground: 220 9% 40%;
 
-  --primary: 250 72% 56%;
+  /*
+    Xanh dien (hue 210) - co y tranh vung tim/indigo (hue 240+, thuong bi che la "mau
+    tim AI" sao rong), tach ro khoi destructive (do, hue 0) va success (xanh la, hue
+    152) de ba trang thai khong bi lam nhau. Da kiem chung do tuong phan: 5.0:1 voi
+    chu trang, dat WCAG AA.
+  */
+  --primary: 210 78% 44%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 220 14% 96%;
@@ -33,7 +39,7 @@
 
   --border: 220 13% 88%;
   --input: 220 13% 88%;
-  --ring: 250 72% 56%;
+  --ring: 210 78% 44%;
 
   --radius: 0.75rem;
 }
@@ -48,7 +54,7 @@
   --muted: 224 18% 16%;
   --muted-foreground: 220 12% 68%;
 
-  --primary: 250 85% 72%;
+  --primary: 210 80% 65%;
   --primary-foreground: 224 24% 8%;
 
   --secondary: 224 18% 16%;
@@ -61,7 +67,7 @@
 
   --border: 224 16% 22%;
   --input: 224 16% 22%;
-  --ring: 250 85% 72%;
+  --ring: 210 80% 65%;
 }
 
 @theme inline {
@@ -82,7 +88,7 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 0.25rem);

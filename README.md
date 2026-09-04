@@ -154,6 +154,20 @@ Redirect URLs**, neu khong Supabase se tu choi dieu huong nguoc ve trang web.
 Giai doan 1 (nen mong) da hoan thanh: monorepo, schema day du cho ca MVP, dang ky/dang
 nhap, ho so ca nhan va ho so cong khai.
 
-Giai doan 2 (quan ly bo the, upload anh, kham pha va tim kiem) va giai doan 3 (bon che do
-hoc, thong ke) se duoc thiet ke va trien khai tiep. Cac trang `/explore`, `/dashboard` va
-`/u/[username]` hien da co khung va se duoc noi voi du lieu that o hai giai doan do.
+Giai doan 2 dang trien khai tung phan:
+- **Quan ly bo the (xong)**: API `StudySets` (CRUD bo the + the, kiem tra quyen va
+  visibility), form tao/sua bo the, trang chi tiet `/sets/[id]`, va danh sach bo the that
+  tren `/dashboard` (bo the cua ban) va `/u/[username]` (bo the cong khai).
+- **Upload anh** va **Explore/tim kiem**: dang tiep tuc (trang `/explore` van la khung).
+
+Giai doan 3 (bon che do hoc, thong ke) dang hoan thien:
+- **Bon che do hoc**: Thẻ ghi nhớ (lật), Học lại ngắt quãng (spaced repetition theo
+  masteryLevel + nextReviewAt, thuật toán nằm tại `StudyService`), Kiểm tra (trắc nghiệm /
+  tự luận / đúng-sai, sinh đề xác định để API tự chấm), Ghép cặp (tính giờ, lưu kỷ lục).
+- **Thong ke**: API `/study/stats` tổng hợp thẻ đã học, đã thuộc, cần ôn hôm nay, số lượt
+  kiểm tra và kỷ lục ghép cặp; hiển thị trên `/dashboard`.
+
+Con lai:
+- **Upload ảnh** cho thẻ và **Explore / tìm kiếm toàn văn**: chưa làm (trang `/explore`
+  vẫn là khung; trường `imagePath` đã có sẵn nhưng form tạo bộ thẻ chưa dùng).
+- **Thư mục (Folders)**: API chưa code, sidebar vẫn dùng dữ liệu minh họa.

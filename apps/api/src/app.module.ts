@@ -7,6 +7,8 @@ import { SupabaseAuthGuard } from './auth/supabase-auth.guard';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfilesModule } from './profiles/profiles.module';
+import { StudySetsModule } from './study-sets/study-sets.module';
+import { StudyModule } from './study/study.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { ProfilesModule } from './profiles/profiles.module';
     AuthModule,
     HealthModule,
     ProfilesModule,
+    StudySetsModule,
+    StudyModule,
   ],
   providers: [
     // Dang ky toan cuc: mac dinh dong, mo tung route bang @Public.

@@ -1,13 +1,21 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Geist } from 'next/font/google';
 import { AppShell } from '@/components/layout/app-shell';
 import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 
-const inter = Inter({
-  subsets: ['latin', 'vietnamese'],
+/**
+ * Inter bi doi sang Geist. Google khong khai bao subset "vietnamese" rieng cho font
+ * nay (chi co cyrillic/latin/latin-ext) nen next/font/google se bao loi neu khai bao
+ * subset do - nhung da kiem tra bang fontTools rang file "latin" van chua du glyph
+ * tieng Viet co dau (a hoi, o moc sac, u moc nang, d gach...), vi Geist khong thuc su
+ * chia file theo subset ma phat hanh mot file day du glyph duy nhat. Outfit (lua chon
+ * dau tien theo goi y cua skill thiet ke) bi loai vi thieu han nhung glyph nay.
+ */
+const geist = Geist({
+  subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-geist',
 });
 
 export const metadata: Metadata = {
@@ -36,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     // suppressHydrationWarning: next-themes gan class theme len <html> truoc khi React
     // hydrate, nen HTML server va client khac nhau o dung thuoc tinh nay.
-    <html lang="vi" suppressHydrationWarning className={inter.variable}>
+    <html lang="vi" suppressHydrationWarning className={geist.variable}>
       <body className="min-h-dvh font-sans antialiased">
         <ThemeProvider>
           <a

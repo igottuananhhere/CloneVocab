@@ -5,6 +5,26 @@ import { publicEnv } from '@/lib/env';
 /** Duong dan bat buoc dang nhap. So khop theo tien to. */
 const PROTECTED_PREFIXES = ['/dashboard', '/settings', '/sets/create'];
 
+/** Cac che do hoc nam duoi /sets/[id]/<mode>, bat buoc dang nhap de luu tien do. */
+const STUDY_MODES = ['learn', 'test', 'match', 'cards', 'edit'];
+
+function isProtected(pathname: string): boolean {
+  if (
+    PROTECTED_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    )
+  ) {
+    return true;
+  }
+  const segments = pathname.split('/');
+  return (
+    segments.length === 4 &&
+    segments[1] === 'sets' &&
+    segments[3] !== undefined &&
+    STUDY_MODES.includes(segments[3])
+  );
+}
+
 /**
  * Lam moi session Supabase o moi request va chan som cac trang can dang nhap.
  * Chay o middleware nen nguoi chua dang nhap khong bao gio tai duoc HTML cua trang rieng.
@@ -36,9 +56,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const needsAuth = PROTECTED_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
+  const needsAuth = isProtected(pathname);
 
   if (needsAuth && !user) {
     const loginUrl = request.nextUrl.clone();

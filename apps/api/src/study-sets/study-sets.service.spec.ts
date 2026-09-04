@@ -1,0 +1,165 @@
+import { describe, expect, it, vi } from 'vitest';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { StudySetsService } from './study-sets.service';
+import type { PrismaService } from '../prisma/prisma.service';
+import type { AuthenticatedUser } from '../auth/authenticated-user';
+
+type Delegate = Record<string, unknown>;
+
+function makeService(delegates: {
+  studySet?: Delegate;
+  profile?: Delegate;
+  flashcard?: Delegate;
+  transaction?: unknown;
+}): StudySetsService {
+  const prisma = {
+    client: {
+      studySet: delegates.studySet ?? {},
+      profile: delegates.profile ?? {},
+      flashcard: delegates.flashcard ?? {},
+      $transaction: delegates.transaction ?? vi.fn(),
+    },
+  } as unknown as PrismaService;
+  return new StudySetsService(prisma);
+}
+
+const owner: AuthenticatedUser = {
+  id: '11111111-1111-4111-8111-111111111111',
+  email: 'an@example.com',
+  role: 'authenticated',
+};
+const stranger: AuthenticatedUser = {
+  id: '22222222-2222-4222-8222-222222222222',
+  email: 'binh@example.com',
+  role: 'authenticated',
+};
+
+const baseSet = {
+  id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+  ownerId: owner.id,
+  title: 'Tiếng Nhật sơ cấp',
+  description: null,
+  subject: null,
+  language: 'ja',
+  visibility: 'PRIVATE',
+  cardCount: 2,
+  viewCount: 0,
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+};
+
+describe('StudySetsService', () => {
+  describe('create', () => {
+    it('tao bo the cung the trong mot lan goi', async () => {
+      const create = vi.fn().mockResolvedValue({
+        ...baseSet,
+        visibility: 'PUBLIC',
+        owner: { id: owner.id, username: 'an-nguyen', displayName: 'An' },
+        flashcards: [
+          { id: 'c1', studySetId: baseSet.id, term: 'こんにちは', definition: 'Xin chào', imagePath: null, position: 0 },
+        ],
+      });
+
+      const service = makeService({ studySet: { create } });
+      const result = await service.create(owner, {
+        title: 'Tiếng Nhật sơ cấp',
+        visibility: 'PUBLIC',
+        flashcards: [{ term: 'こんにちは', definition: 'Xin chào' }],
+      });
+
+      expect(create).toHaveBeenCalledOnce();
+      expect(result.cardCount).toBe(2);
+      expect(result.flashcards).toHaveLength(1);
+    });
+  });
+
+  describe('getById', () => {
+    it('tra 404 cho bo the private voi nguoi la', async () => {
+      const service = makeService({
+        studySet: { findUnique: vi.fn().mockResolvedValue(baseSet) },
+      });
+
+      await expect(service.getById(baseSet.id, stranger.id)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('tang viewCount khi nguoi la xem bo the public', async () => {
+      const update = vi.fn().mockResolvedValue(null);
+      const service = makeService({
+        studySet: {
+          findUnique: vi
+            .fn()
+            .mockResolvedValue({
+              ...baseSet,
+              visibility: 'PUBLIC',
+              owner: { id: owner.id, username: 'an-nguyen', displayName: 'An' },
+              flashcards: [],
+            }),
+          update,
+        },
+      });
+
+      const result = await service.getById(baseSet.id, stranger.id);
+
+      expect(update).toHaveBeenCalledWith({
+        where: { id: baseSet.id },
+        data: { viewCount: { increment: 1 } },
+      });
+      expect(result.viewCount).toBe(1);
+    });
+  });
+
+  describe('update', () => {
+    it('chan nguoi khong phai chu so huu', async () => {
+      const service = makeService({
+        studySet: { findUnique: vi.fn().mockResolvedValue({ ...baseSet, owner: { id: owner.id } }) },
+      });
+
+      await expect(
+        service.update(baseSet.id, stranger, { title: 'Mới' }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('remove', () => {
+    it('cho phep chu so huu xoa', async () => {
+      const del = vi.fn().mockResolvedValue(undefined);
+      const service = makeService({
+        studySet: {
+          findUnique: vi.fn().mockResolvedValue({ ...baseSet, owner: { id: owner.id } }),
+          delete: del,
+        },
+      });
+
+      await expect(service.remove(baseSet.id, owner)).resolves.toEqual({ id: baseSet.id });
+      expect(del).toHaveBeenCalledWith({ where: { id: baseSet.id } });
+    });
+  });
+
+  describe('list', () => {
+    it('chi tra bo the PUBLIC cho nguoi la', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const service = makeService({
+        profile: { findUnique: vi.fn().mockResolvedValue({ id: owner.id }) },
+        studySet: { findMany },
+      });
+
+      await service.list({ ownerUsername: 'an-nguyen', viewerId: stranger.id });
+
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ visibility: 'PUBLIC' }) }),
+      );
+    });
+
+    it('tra 404 khi khong co nguoi dung voi username do', async () => {
+      const service = makeService({
+        profile: { findUnique: vi.fn().mockResolvedValue(null) },
+      });
+
+      await expect(service.list({ ownerUsername: 'khong-ton-tai' })).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
+});

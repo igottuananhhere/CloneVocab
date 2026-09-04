@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import type { MeProfile } from '@flashcard/contracts';
-import { Alert } from '@/components/ui/alert';
+import type { MeProfile, StudySetSummary, StudyStats } from '@flashcard/contracts';
 import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StudySetCard } from '@/components/sets/study-set-card';
 import { apiServer } from '@/lib/api/server';
 
 export const metadata: Metadata = {
@@ -11,11 +11,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Trang phu thuoc vao session nen khong duoc phep prerender tinh.
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const me = await apiServer<MeProfile>('/profiles/me');
+  const sets = await apiServer<StudySetSummary[]>('/study-sets/mine');
+  const stats = await apiServer<StudyStats>('/study/stats');
   const displayName = me.displayName ?? me.username;
 
   return (
@@ -35,42 +36,68 @@ export default async function DashboardPage() {
         </Link>
       </header>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Bộ thẻ của bạn</CardTitle>
-            <CardDescription>Các bộ thẻ bạn đã tạo</CardDescription>
+            <CardTitle className="text-base">Thẻ đã học</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold tabular-nums">0</p>
+            <p className="text-3xl font-semibold tabular-nums">{stats.studiedCards}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Thẻ đã thuộc</CardTitle>
-            <CardDescription>Trên tổng số thẻ đang học</CardDescription>
+            <CardTitle className="text-base">Đã thuộc</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold tabular-nums">0</p>
+            <p className="text-3xl font-semibold tabular-nums">{stats.masteredCards}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Cần ôn hôm nay</CardTitle>
-            <CardDescription>Thẻ đến hạn nhắc lại</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold tabular-nums">0</p>
+            <p className="text-3xl font-semibold tabular-nums">{stats.dueToday}</p>
           </CardContent>
         </Card>
       </div>
 
-      <Alert className="mt-8">
-        Các chỉ số trên sẽ được nối với dữ liệu thật ở giai đoạn 2 và 3, khi API bộ thẻ và
-        tiến độ học tập sẵn sàng.
-      </Alert>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Bộ thẻ của bạn
+          <span className="ml-2 text-base font-normal text-muted-foreground">{sets.length}</span>
+        </h2>
+        <Link href="/sets/create" className={buttonVariants({ size: 'sm' })}>
+          + Tạo bộ thẻ
+        </Link>
+      </div>
+
+      {sets.length === 0 ? (
+        <Card className="mt-4">
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">
+              Bạn chưa có bộ thẻ nào. Tạo bộ thẻ đầu tiên để bắt đầu học.
+            </p>
+            <Link
+              href="/sets/create"
+              className={buttonVariants({ size: 'sm', className: 'mt-4' })}
+            >
+              + Tạo bộ thẻ
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {sets.map((set) => (
+            <li key={set.id}>
+              <StudySetCard set={set} />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
