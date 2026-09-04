@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "build:api": "turbo run build --filter=@flashcard/api...",
+    "start:api": "node apps/api/dist/main.js",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
