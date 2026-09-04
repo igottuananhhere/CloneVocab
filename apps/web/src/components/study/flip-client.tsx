@@ -5,6 +5,7 @@ import type { Flashcard } from '@flashcard/contracts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { apiBrowser } from '@/lib/api/browser';
+import { flashcardImageUrl } from '@/lib/flashcard-image';
 
 export function FlipClient({
   setId,
@@ -23,13 +24,13 @@ export function FlipClient({
 
   function record(known: boolean) {
     if (!card) return;
-    const next = { ...results, [card.id]: known };
-    setResults(next);
+    const all = { ...results, [card.id]: known };
+    setResults(all);
+    setFlipped(false);
     if (index + 1 < cards.length) {
       setIndex(index + 1);
-      setFlipped(false);
     } else {
-      finish(next);
+      finish(all);
     }
   }
 
@@ -58,14 +59,15 @@ export function FlipClient({
     setDone(false);
   }
 
+  const knownCount = Object.values(results).filter(Boolean).length;
+
   if (done) {
-    const known = Object.values(results).filter(Boolean).length;
     return (
       <Card>
         <CardContent className="space-y-4 py-8 text-center">
-          <p className="text-lg font-semibold">Đã ôn xong {cards.length} thẻ</p>
+          <p className="text-3xl font-bold">Hoàn thành!</p>
           <p className="text-muted-foreground">
-            Bạn thuộc {known} / {cards.length} thẻ. Tiến độ đã được lưu.
+            Đã thuộc {knownCount} / {cards.length} thẻ
           </p>
           <div className="flex justify-center gap-3">
             <Button onClick={restart}>Học lại</Button>
@@ -77,13 +79,25 @@ export function FlipClient({
 
   if (!card) return null;
 
+  const imgUrl = flashcardImageUrl(card.imagePath);
+
   return (
     <Card>
       <button
         type="button"
         onClick={() => setFlipped((value) => !value)}
-        className="flex min-h-[16rem] w-full flex-col items-center justify-center rounded-t-lg p-6 text-center"
+        className="flex min-h-[18rem] w-full flex-col items-center justify-center rounded-t-lg p-6 text-center"
       >
+        {imgUrl && (
+          <div className="mb-4 max-h-48 max-w-xs overflow-hidden rounded-lg border border-border bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imgUrl}
+              alt="Ảnh minh họa"
+              className="max-h-48 w-auto object-contain"
+            />
+          </div>
+        )}
         <span className="text-2xl font-semibold">{flipped ? card.definition : card.term}</span>
         <span className="mt-3 text-sm text-muted-foreground">
           {flipped ? 'Mặt sau' : 'Mặt trước — nhấn để lật'}

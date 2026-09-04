@@ -4,3 +4,4 @@ export * from './profile';
 export * from './study-set';
 export * from './study';
 export * from './folder';
+export * from './upload';
