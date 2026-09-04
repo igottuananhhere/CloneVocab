@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "build:api": "turbo run build --filter=@flashcard/api...",
+    "build:api": "pnpm --filter @flashcard/db run generate && pnpm --filter @flashcard/contracts run build && pnpm --filter @flashcard/db run build && pnpm --filter @flashcard/api run build",
     "start:api": "node apps/api/dist/main.js",
     "lint": "turbo run lint",
     "test": "turbo run test",
