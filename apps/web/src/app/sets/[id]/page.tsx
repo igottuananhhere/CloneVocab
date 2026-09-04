@@ -12,6 +12,7 @@ import type { StudySetDetail } from '@flashcard/contracts';
 import { buttonVariants } from '@/components/ui/button';
 import { DeleteSetButton } from '@/components/sets/delete-set-button';
 import { SaveSetButton } from '@/components/sets/save-set-button';
+import { AddToFolderDialog } from '@/components/folders/add-to-folder-dialog';
 import { apiServer } from '@/lib/api/server';
 import { createClient } from '@/lib/supabase/server';
 import { ApiRequestError } from '@/lib/api/request';
@@ -80,7 +81,8 @@ export default async function StudySetPage({ params }: PageProps) {
       <header className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-3xl font-bold tracking-tight">{set.title}</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <AddToFolderDialog setId={set.id} isLoggedIn={Boolean(user)} />
             {!isOwner && (
               <SaveSetButton
                 setId={set.id}

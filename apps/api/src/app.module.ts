@@ -9,6 +9,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { StudySetsModule } from './study-sets/study-sets.module';
 import { StudyModule } from './study/study.module';
+import { FoldersModule } from './folders/folders.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { StudyModule } from './study/study.module';
     ProfilesModule,
     StudySetsModule,
     StudyModule,
+    FoldersModule,
   ],
   providers: [
     // Dang ky toan cuc: mac dinh dong, mo tung route bang @Public.
