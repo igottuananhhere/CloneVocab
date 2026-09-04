@@ -16,7 +16,6 @@ import { AddToFolderDialog } from '@/components/folders/add-to-folder-dialog';
 import { apiServer } from '@/lib/api/server';
 import { createClient } from '@/lib/supabase/server';
 import { ApiRequestError } from '@/lib/api/request';
-import { flashcardImageUrl } from '@/lib/flashcard-image';
 import { cn } from '@/lib/utils';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -157,40 +156,19 @@ export default async function StudySetPage({ params }: PageProps) {
           Danh sách thẻ
         </h2>
         <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
-          {set.flashcards.map((card, index) => {
-            const imgUrl = flashcardImageUrl(card.imagePath);
-            return (
-              <li
-                key={card.id}
-                className={cn(
-                  'grid gap-3 p-4 sm:items-center sm:gap-4',
-                  imgUrl ? 'sm:grid-cols-[1fr_1fr_auto]' : 'sm:grid-cols-2',
-                )}
-              >
-                <div>
-                  <p className="text-xs text-muted-foreground">Mặt trước</p>
-                  <p className="font-medium">{card.term}</p>
-                </div>
-                <div className="sm:border-l sm:border-border sm:pl-4">
-                  <p className="text-xs text-muted-foreground">Mặt sau</p>
-                  <p className="font-medium">{card.definition}</p>
-                </div>
-                {imgUrl && (
-                  <div className="flex justify-start sm:justify-end sm:pl-2">
-                    <div className="relative h-14 w-20 overflow-hidden rounded-md border border-border bg-muted">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imgUrl}
-                        alt={card.term}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  </div>
-                )}
-                <span className="sr-only">Thẻ {index + 1}</span>
-              </li>
-            );
-          })}
+          {set.flashcards.map((card, index) => (
+            <li key={card.id} className="grid gap-1 p-4 sm:grid-cols-2 sm:gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Mặt trước</p>
+                <p className="font-medium">{card.term}</p>
+              </div>
+              <div className="sm:border-l sm:border-border sm:pl-4">
+                <p className="text-xs text-muted-foreground">Mặt sau</p>
+                <p className="font-medium">{card.definition}</p>
+              </div>
+              <span className="sr-only">Thẻ {index + 1}</span>
+            </li>
+          ))}
         </ul>
       </section>
 

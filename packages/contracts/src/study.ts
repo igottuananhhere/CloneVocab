@@ -11,7 +11,6 @@ import { questionTypeSchema } from './enums';
 export const learnItemSchema = z.object({
   flashcardId: z.string().uuid(),
   prompt: z.string(),
-  imagePath: z.string().nullable().optional(),
   choices: z.array(z.string()).min(2),
   correctIndex: z.number().int().min(0),
 });
@@ -45,7 +44,6 @@ export const testQuestionSchema = z.object({
   type: questionTypeSchema,
   instruction: z.string(),
   prompt: z.string(),
-  imagePath: z.string().nullable().optional(),
   /** Chi co o cau trac nghiem va dung/sai. Khong chua dap an o day. */
   choices: z.array(z.string()).optional(),
 });

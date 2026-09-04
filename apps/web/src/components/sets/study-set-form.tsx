@@ -12,15 +12,12 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
-import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { apiBrowser } from '@/lib/api/browser';
 import { ApiRequestError } from '@/lib/api/request';
-import { flashcardImageUrl } from '@/lib/flashcard-image';
-import { uploadFlashcardImage } from '@/lib/upload-flashcard-image';
 
-type CardDraft = { term: string; definition: string; imagePath?: string | null };
+type CardDraft = { term: string; definition: string };
 
 const LANGUAGES = [
   { value: 'vi', label: 'Tiếng Việt' },
@@ -57,17 +54,12 @@ export function StudySetForm({
   const [language, setLanguage] = useState(initial?.language ?? 'vi');
   const [visibility, setVisibility] = useState<Visibility>(initial?.visibility ?? 'PRIVATE');
   const [cards, setCards] = useState<CardDraft[]>(
-    initial?.flashcards.map((card) => ({
-      term: card.term,
-      definition: card.definition,
-      imagePath: card.imagePath,
-    })) ?? [
-      { term: '', definition: '', imagePath: null },
-      { term: '', definition: '', imagePath: null },
+    initial?.flashcards.map((card) => ({ term: card.term, definition: card.definition })) ?? [
+      { term: '', definition: '' },
+      { term: '', definition: '' },
     ],
   );
   const [bulk, setBulk] = useState('');
-  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
@@ -78,30 +70,11 @@ export function StudySetForm({
   }
 
   function addCard() {
-    setCards((prev) => [...prev, { term: '', definition: '', imagePath: null }]);
+    setCards((prev) => [...prev, { term: '', definition: '' }]);
   }
 
   function removeCard(index: number) {
     setCards((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
-  }
-
-  function removeImage(index: number) {
-    setCards((prev) => prev.map((card, i) => (i === index ? { ...card, imagePath: null } : card)));
-  }
-
-  async function handleImageSelect(index: number, file: File) {
-    setUploadingIndex(index);
-    try {
-      const path = await uploadFlashcardImage(file);
-      setCards((prev) => prev.map((card, i) => (i === index ? { ...card, imagePath: path } : card)));
-    } catch (err: unknown) {
-      setStatus({
-        tone: 'error',
-        message: err instanceof Error ? err.message : 'Không thể tải ảnh lên.',
-      });
-    } finally {
-      setUploadingIndex(null);
-    }
   }
 
   function moveCard(index: number, direction: -1 | 1) {
@@ -138,7 +111,6 @@ export function StudySetForm({
       flashcards: cards.map((card) => ({
         term: card.term.trim(),
         definition: card.definition.trim(),
-        imagePath: card.imagePath ?? null,
       })),
     };
 
@@ -276,106 +248,52 @@ export function StudySetForm({
           {cards.map((card, index) => (
             <li key={index}>
               <Card>
-                <CardContent className="space-y-3 pt-4">
-                  <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                    <Input
-                      aria-label={`Mặt trước thẻ ${index + 1}`}
-                      value={card.term}
-                      onChange={(event) => updateCard(index, 'term', event.target.value)}
-                      placeholder="Mặt trước (từ / câu hỏi)"
-                      invalid={Boolean(errors[`flashcards.${index}.term`])}
-                    />
-                    <Input
-                      aria-label={`Mặt sau thẻ ${index + 1}`}
-                      value={card.definition}
-                      onChange={(event) => updateCard(index, 'definition', event.target.value)}
-                      placeholder="Mặt sau (nghĩa / đáp án)"
-                      invalid={Boolean(errors[`flashcards.${index}.definition`])}
-                    />
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Chuyển lên"
-                        disabled={index === 0}
-                        onClick={() => moveCard(index, -1)}
-                      >
-                        ↑
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Chuyển xuống"
-                        disabled={index === cards.length - 1}
-                        onClick={() => moveCard(index, 1)}
-                      >
-                        ↓
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Xóa thẻ"
-                        disabled={cards.length <= 1}
-                        onClick={() => removeCard(index)}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Vung anh minh hoa */}
-                  <div className="flex items-center justify-between border-t border-border/50 pt-2.5">
-                    {card.imagePath ? (
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-16 overflow-hidden rounded border border-border bg-muted">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={flashcardImageUrl(card.imagePath) || ''}
-                            alt="Ảnh minh họa"
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => removeImage(index)}
-                        >
-                          <Trash2 className="mr-1 size-3.5" />
-                          Xóa ảnh
-                        </Button>
-                      </div>
-                    ) : (
-                      <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          className="sr-only"
-                          disabled={uploadingIndex === index}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleImageSelect(index, file);
-                            e.target.value = '';
-                          }}
-                        />
-                        {uploadingIndex === index ? (
-                          <>
-                            <Loader2 className="size-3.5 animate-spin" />
-                            <span>Đang xử lý ảnh...</span>
-                          </>
-                        ) : (
-                          <>
-                            <ImagePlus className="size-3.5" />
-                            <span>Thêm hình ảnh</span>
-                          </>
-                        )}
-                      </label>
-                    )}
-                    <span className="text-[11px] text-muted-foreground">Thẻ {index + 1}</span>
+                <CardContent className="grid gap-3 pt-4 sm:grid-cols-[1fr_1fr_auto]">
+                  <Input
+                    aria-label={`Mặt trước thẻ ${index + 1}`}
+                    value={card.term}
+                    onChange={(event) => updateCard(index, 'term', event.target.value)}
+                    placeholder="Mặt trước (từ / câu hỏi)"
+                    invalid={Boolean(errors[`flashcards.${index}.term`])}
+                  />
+                  <Input
+                    aria-label={`Mặt sau thẻ ${index + 1}`}
+                    value={card.definition}
+                    onChange={(event) => updateCard(index, 'definition', event.target.value)}
+                    placeholder="Mặt sau (nghĩa / đáp án)"
+                    invalid={Boolean(errors[`flashcards.${index}.definition`])}
+                  />
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Chuyển lên"
+                      disabled={index === 0}
+                      onClick={() => moveCard(index, -1)}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Chuyển xuống"
+                      disabled={index === cards.length - 1}
+                      onClick={() => moveCard(index, 1)}
+                    >
+                      ↓
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Xóa thẻ"
+                      disabled={cards.length <= 1}
+                      onClick={() => removeCard(index)}
+                    >
+                      ✕
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -421,7 +339,7 @@ export function StudySetForm({
   );
 }
 
-/** Tach tung dong thanh { term, definition, imagePath: null }. Tra ve [] neu khong co du lieu hop le. */
+/** Tach tung dong thanh { term, definition }. Tra ve [] neu khong co du lieu hop le. */
 function parseBulk(text: string): CardDraft[] {
   return text
     .split(/\r?\n/)
@@ -430,13 +348,12 @@ function parseBulk(text: string): CardDraft[] {
     .map((line) => {
       const match = line.match(/\t|::|\s[-–—]\s|\s\|\s/);
       if (!match || match.index === undefined) {
-        return { term: line, definition: '', imagePath: null };
+        return { term: line, definition: '' };
       }
       const separator = match[0] ?? '';
       return {
         term: line.slice(0, match.index).trim(),
         definition: line.slice(match.index + separator.length).trim(),
-        imagePath: null,
       };
     });
 }

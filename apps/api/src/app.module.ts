@@ -10,8 +10,6 @@ import { ProfilesModule } from './profiles/profiles.module';
 import { StudySetsModule } from './study-sets/study-sets.module';
 import { StudyModule } from './study/study.module';
 import { FoldersModule } from './folders/folders.module';
-import { SupabaseModule } from './supabase/supabase.module';
-import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -23,14 +21,12 @@ import { UploadsModule } from './uploads/uploads.module';
       cache: true,
     }),
     PrismaModule,
-    SupabaseModule,
     AuthModule,
     HealthModule,
     ProfilesModule,
     StudySetsModule,
     StudyModule,
     FoldersModule,
-    UploadsModule,
   ],
   providers: [
     // Dang ky toan cuc: mac dinh dong, mo tung route bang @Public.

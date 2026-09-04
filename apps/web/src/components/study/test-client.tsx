@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { apiBrowser } from '@/lib/api/browser';
 import { ApiRequestError } from '@/lib/api/request';
-import { flashcardImageUrl } from '@/lib/flashcard-image';
 import { cn } from '@/lib/utils';
 
 export function TestClient({
@@ -90,16 +89,6 @@ export function TestClient({
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               {q.instruction}
             </p>
-            {q.imagePath && (
-              <div className="max-h-40 max-w-xs overflow-hidden rounded-md border border-border bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={flashcardImageUrl(q.imagePath) || ''}
-                  alt={q.prompt}
-                  className="max-h-40 w-auto object-contain"
-                />
-              </div>
-            )}
             <p className="font-medium">
               {qi + 1}. {q.prompt}
             </p>

@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import type { Flashcard } from '@flashcard/contracts';
 import { Button } from '@/components/ui/button';
 import { apiBrowser } from '@/lib/api/browser';
-import { flashcardImageUrl } from '@/lib/flashcard-image';
 import { cn } from '@/lib/utils';
 
 type Tile = {
@@ -12,7 +11,6 @@ type Tile = {
   cardId: string;
   kind: 'term' | 'def';
   text: string;
-  imagePath?: string | null;
 };
 
 function shuffle<T>(input: T[]): T[] {
@@ -31,13 +29,7 @@ export function MatchClient({ setId, cards }: { setId: string; cards: Flashcard[
   const tiles = useMemo<Tile[]>(() => {
     const built: Tile[] = [];
     for (const card of cards) {
-      built.push({
-        id: `${card.id}:t`,
-        cardId: card.id,
-        kind: 'term',
-        text: card.term,
-        imagePath: card.imagePath,
-      });
+      built.push({ id: `${card.id}:t`, cardId: card.id, kind: 'term', text: card.term });
       built.push({ id: `${card.id}:d`, cardId: card.id, kind: 'def', text: card.definition });
     }
     return shuffle(built);
@@ -133,24 +125,14 @@ export function MatchClient({ setId, cards }: { setId: string; cards: Flashcard[
               onClick={() => handleClick(tile)}
               disabled={isMatched}
               className={cn(
-                'flex min-h-[4rem] flex-col items-center justify-center gap-1.5 rounded-md border p-2 text-center text-sm transition-colors',
+                'min-h-[3.5rem] rounded-md border px-3 py-2 text-sm transition-colors',
                 isMatched && 'invisible',
                 isSelected && 'border-primary bg-primary/10',
                 !isMatched && !isSelected && 'border-border bg-card hover:border-primary/50',
                 wrong && isSelected && 'border-destructive bg-destructive/10',
               )}
             >
-              {tile.imagePath && (
-                <div className="h-8 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={flashcardImageUrl(tile.imagePath) || ''}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              )}
-              <span className="line-clamp-2">{tile.text}</span>
+              {tile.text}
             </button>
           );
         })}

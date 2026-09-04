@@ -35,7 +35,6 @@ type BuiltQuestion = {
   type: QuestionType;
   instruction: string;
   prompt: string;
-  imagePath?: string | null;
   choices?: string[];
   /** Dap an dinh nghia tai server: MCQ -> chi so, WRITTEN -> chuoi da chuan hoa,
    *  TRUE_FALSE -> "true"/"false". Khong bao gio gui ve client. */
@@ -257,7 +256,6 @@ export class StudyService {
     return {
       flashcardId: card.id,
       prompt: card.term,
-      imagePath: card.imagePath,
       choices: rotated,
       correctIndex: target,
     };
@@ -285,7 +283,6 @@ export class StudyService {
           type,
           instruction: 'Chọn định nghĩa đúng',
           prompt: card.term,
-          imagePath: card.imagePath,
           choices: rotated,
           answer: String(target),
           correctText: correct,
@@ -300,7 +297,6 @@ export class StudyService {
           type,
           instruction: reverse ? 'Nhập thuật ngữ' : 'Nhập định nghĩa',
           prompt: reverse ? card.definition : card.term,
-          imagePath: reverse ? null : card.imagePath,
           answer: normalize(reverse ? card.term : card.definition),
           correctText: reverse ? card.term : card.definition,
         };
@@ -316,7 +312,6 @@ export class StudyService {
         type,
         instruction: 'Đúng hay sai?',
         prompt: `"${card.term}" ${truthful ? 'có nghĩa là' : 'không có nghĩa là'} "${candidate}"`,
-        imagePath: card.imagePath,
         answer: String(truthful),
         correctText: truthful ? 'Đúng' : 'Sai',
       };
@@ -391,7 +386,6 @@ function toPublicQuestion(question: BuiltQuestion): TestQuestion {
     type: question.type,
     instruction: question.instruction,
     prompt: question.prompt,
-    imagePath: question.imagePath,
     ...(question.choices ? { choices: question.choices } : {}),
   };
 }
