@@ -13,6 +13,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { DeleteSetButton } from '@/components/sets/delete-set-button';
 import { SaveSetButton } from '@/components/sets/save-set-button';
 import { AddToFolderDialog } from '@/components/folders/add-to-folder-dialog';
+import { ReportSetDialog } from '@/components/sets/report-set-dialog';
 import { apiServer } from '@/lib/api/server';
 import { createClient } from '@/lib/supabase/server';
 import { ApiRequestError } from '@/lib/api/request';
@@ -85,11 +86,14 @@ export default async function StudySetPage({ params }: PageProps) {
           <div className="flex flex-wrap items-center gap-2">
             <AddToFolderDialog setId={set.id} isLoggedIn={Boolean(user)} />
             {!isOwner && (
-              <SaveSetButton
-                setId={set.id}
-                initialSaved={Boolean(set.isSaved)}
-                isLoggedIn={Boolean(user)}
-              />
+              <>
+                <SaveSetButton
+                  setId={set.id}
+                  initialSaved={Boolean(set.isSaved)}
+                  isLoggedIn={Boolean(user)}
+                />
+                <ReportSetDialog setId={set.id} />
+              </>
             )}
             {isOwner && (
               <>

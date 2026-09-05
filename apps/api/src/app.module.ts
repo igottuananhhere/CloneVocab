@@ -12,6 +12,7 @@ import { StudyModule } from './study/study.module';
 import { FoldersModule } from './folders/folders.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { UploadsModule } from './uploads/uploads.module';
     StudyModule,
     FoldersModule,
     UploadsModule,
+    ReportsModule,
   ],
   providers: [
     // Dang ky toan cuc: mac dinh dong, mo tung route bang @Public.

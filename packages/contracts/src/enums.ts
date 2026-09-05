@@ -11,6 +11,15 @@ export type Visibility = z.infer<typeof visibilitySchema>;
 export const reportStatusSchema = z.enum(['OPEN', 'REVIEWING', 'RESOLVED', 'DISMISSED']);
 export type ReportStatus = z.infer<typeof reportStatusSchema>;
 
+export const reportReasonSchema = z.enum([
+  'SPAM',
+  'INAPPROPRIATE',
+  'COPYRIGHT',
+  'MISINFORMATION',
+  'OTHER',
+]);
+export type ReportReason = z.infer<typeof reportReasonSchema>;
+
 /** Dang cau hoi dung trong che do Learn/Test (P3). Khai bao som de schema du lieu on dinh. */
 export const questionTypeSchema = z.enum(['MULTIPLE_CHOICE', 'WRITTEN', 'TRUE_FALSE']);
 export type QuestionType = z.infer<typeof questionTypeSchema>;
