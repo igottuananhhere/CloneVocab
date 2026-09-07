@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate || true",
     "generate": "prisma generate",
     "migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "migrate:create": "dotenv -e ../../.env -- prisma migrate dev --create-only",
@@ -29,9 +29,6 @@
     "studio": "dotenv -e ../../.env -- prisma studio",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rimraf dist .turbo *.tsbuildinfo"
-  },
-  "prisma": {
-    "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1"

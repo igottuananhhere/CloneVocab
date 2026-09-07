@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "next build",
+    "build": "pnpm --filter @flashcard/contracts run build && next build",
+    "build:web": "pnpm --filter @flashcard/contracts run build && next build",
     "start": "next start --port 3000",
     "lint": "next lint",
     "typecheck": "tsc -p tsconfig.json --noEmit",
