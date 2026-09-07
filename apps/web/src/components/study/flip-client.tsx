@@ -104,6 +104,7 @@ export function FlipClient({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flipped, index, cards.length, done, card]);
 
   const knownCount = Object.values(results).filter(Boolean).length;

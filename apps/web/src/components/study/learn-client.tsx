@@ -104,6 +104,7 @@ export function LearnClient({ setId, items }: { setId: string; items: LearnItem[
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answered, index, items.length, done, item, results]);
 
   const progressPercent = Math.round(((index + (done ? 1 : 0)) / items.length) * 100);
