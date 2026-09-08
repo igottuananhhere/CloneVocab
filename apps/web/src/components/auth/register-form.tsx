@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -12,12 +11,18 @@ import { createClient } from '@/lib/supabase/client';
 import { registerSchema, toFieldErrors } from '@/lib/validation/auth';
 
 export function RegisterForm() {
-  const router = useRouter();
-
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState<string>('');
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // State cho xac thuc ma OTP
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpSubmitting, setOtpSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,6 +42,7 @@ export function RegisterForm() {
 
     setErrors({});
     setSubmitting(true);
+    setRegisteredEmail(parsed.data.email);
 
     const supabase = createClient();
     const { data: result, error } = await supabase.auth.signUp({
@@ -51,11 +57,9 @@ export function RegisterForm() {
       return;
     }
 
-    // Khi bat xac thuc email, Supabase khong tra ve session ngay. Local (config.toml
-    // dat enable_confirmations = false) thi co session va vao thang duoc.
+    // Khi tat xac thuc email tren Supabase, co session ngay va vao thang
     if (result.session) {
-      router.refresh();
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
       return;
     }
 
@@ -63,14 +67,121 @@ export function RegisterForm() {
     setAwaitingConfirmation(true);
   }
 
+  // Xac thuc ma 6 so (OTP) truc tiep tren form
+  async function onVerifyOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setOtpError(null);
+
+    const cleanOtp = otp.trim();
+    if (!cleanOtp) {
+      setOtpError('Vui lòng nhập mã xác nhận 6 số từ email.');
+      return;
+    }
+
+    setOtpSubmitting(true);
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: registeredEmail,
+      token: cleanOtp,
+      type: 'signup',
+    });
+
+    if (error) {
+      setOtpSubmitting(false);
+      setOtpError(
+        error.message.toLowerCase().includes('expired')
+          ? 'Mã xác nhận đã hết hạn. Vui lòng bấm gửi lại mã.'
+          : error.message,
+      );
+      return;
+    }
+
+    if (data.session) {
+      window.location.href = '/dashboard';
+    } else {
+      setOtpSubmitting(false);
+      setOtpError('Xác nhận thành công! Vui lòng chuyển sang trang đăng nhập.');
+    }
+  }
+
+  // Gui lai ma
+  async function onResendOtp() {
+    if (!registeredEmail || resending) return;
+    setResending(true);
+    setOtpError(null);
+    setResendSuccess(false);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: registeredEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+
+    setResending(false);
+    if (error) {
+      setOtpError(`Không thể gửi lại mã: ${error.message}`);
+    } else {
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 5000);
+    }
+  }
+
   if (awaitingConfirmation) {
     return (
-      <Alert tone="success">
-        <p className="font-medium">Kiểm tra hộp thư của bạn</p>
-        <p className="mt-1">
-          Chúng tôi vừa gửi một liên kết xác nhận. Mở liên kết đó để kích hoạt tài khoản.
-        </p>
-      </Alert>
+      <div className="space-y-6">
+        <Alert tone="success">
+          <p className="font-semibold text-base">Xác nhận email tài khoản</p>
+          <p className="mt-1 text-sm leading-relaxed">
+            Mã xác nhận đã được gửi đến <strong>{registeredEmail}</strong>. Bạn có thể nhập mã xác
+            nhận vào bên dưới để vào học ngay, hoặc nhấp vào liên kết trong email.
+          </p>
+        </Alert>
+
+        {otpError && <Alert tone="error">{otpError}</Alert>}
+        {resendSuccess && <Alert tone="success">Đã gửi lại mã xác nhận mới vào email của bạn!</Alert>}
+
+        <form onSubmit={onVerifyOtp} className="space-y-4">
+          <Field id="otp" label="Mã xác nhận (OTP 6 số)" hint="Kiểm tra email của bạn để lấy mã">
+            <Input
+              name="otp"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={8}
+              placeholder="Ví dụ: 123456"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="text-center text-xl tracking-widest font-mono font-bold"
+              required
+              autoFocus
+            />
+          </Field>
+
+          <Button type="submit" block disabled={otpSubmitting}>
+            {otpSubmitting ? 'Đang xác nhận...' : 'Xác nhận & Vào học ngay'}
+          </Button>
+        </form>
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
+          <button
+            type="button"
+            onClick={onResendOtp}
+            disabled={resending}
+            className="text-primary hover:underline disabled:opacity-50"
+          >
+            {resending ? 'Đang gửi lại...' : 'Chưa nhận được mã? Gửi lại'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAwaitingConfirmation(false)}
+            className="hover:underline"
+          >
+            Đổi email khác
+          </button>
+        </div>
+      </div>
     );
   }
 

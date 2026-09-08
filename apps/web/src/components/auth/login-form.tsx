@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ import { createClient } from '@/lib/supabase/client';
 import { loginSchema, toFieldErrors } from '@/lib/validation/auth';
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   // Loc truoc khi dung: router.push() nhan ca URL tuyet doi, nen mot ?next= khong duoc
   // kiem tra se day nguoi vua dang nhap sang trang cua ke tan cong.
@@ -57,9 +56,8 @@ export function LoginForm() {
       return;
     }
 
-    // refresh() de Server Component doc lai cookie session moi truoc khi dieu huong.
-    router.refresh();
-    router.push(next);
+    // Dieu huong va reload shell (topbar, sidebar) de dam bao session moi duoc ap dung
+    window.location.href = next;
   }
 
   return (
