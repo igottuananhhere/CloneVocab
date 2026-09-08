@@ -120,23 +120,23 @@ export function SetFlashcardPreview({
 
   const handlePrev = useCallback(() => {
     setIndex((prev) => {
+      setFlipped(false);
+      setShowHint(false);
       if (prev > 0) {
-        setFlipped(false);
-        setShowHint(false);
         return prev - 1;
       }
-      return prev;
+      return deck.length > 0 ? deck.length - 1 : 0;
     });
-  }, []);
+  }, [deck.length]);
 
   const handleNext = useCallback(() => {
     setIndex((prev) => {
+      setFlipped(false);
+      setShowHint(false);
       if (prev + 1 < deck.length) {
-        setFlipped(false);
-        setShowHint(false);
         return prev + 1;
       }
-      return prev;
+      return 0;
     });
   }, [deck.length]);
 
@@ -393,9 +393,9 @@ export function SetFlashcardPreview({
           <button
             type="button"
             onClick={handlePrev}
-            disabled={index === 0}
-            className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors shadow-xs"
-            title="Thẻ trước (Phím ←)"
+            disabled={deck.length <= 1}
+            className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors shadow-xs cursor-pointer"
+            title={index === 0 ? "Quay lại thẻ cuối (Phím ←)" : "Thẻ trước (Phím ←)"}
           >
             <ChevronLeft className="size-5" />
           </button>
@@ -407,9 +407,9 @@ export function SetFlashcardPreview({
           <button
             type="button"
             onClick={handleNext}
-            disabled={index + 1 >= deck.length}
-            className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors shadow-xs"
-            title="Thẻ tiếp theo (Phím →)"
+            disabled={deck.length <= 1}
+            className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors shadow-xs cursor-pointer"
+            title={index + 1 >= deck.length ? "Quay về thẻ đầu tiên (Phím →)" : "Thẻ tiếp theo (Phím →)"}
           >
             <ChevronRight className="size-5" />
           </button>
