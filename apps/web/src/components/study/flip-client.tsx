@@ -407,47 +407,14 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
       {/* Khung the Flashcard 3D */}
       <div className="w-full max-w-2xl [perspective:1200px] my-auto">
         <div
+          key={currentCard?.id || currentIndex}
           onClick={handleFlip}
           className={`relative h-[340px] sm:h-[390px] w-full cursor-pointer rounded-2xl transition-transform duration-500 [transform-style:preserve-3d] shadow-2xl ${
             flipped ? '[transform:rotateY(180deg)]' : ''
           }`}
         >
-          {/* Mặt trước: (Từ loại) Nghĩa + /IPA/ */}
+          {/* Mặt trước: TỪ GỐC (Thuật ngữ) + IPA (TUYỆT ĐỐI KHÔNG HIỆN NGHĨA Ở ĐÂY) */}
           <div className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[#384166] bg-[#252c48] overflow-hidden [backface-visibility:hidden]">
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              {currentCard && (
-                <>
-                  <div className="text-2xl sm:text-3xl font-semibold text-white tracking-wide leading-snug max-w-md">
-                    {currentCard.type ? (
-                      <span className="text-white/80 mr-1.5 font-normal">
-                        ({currentCard.type})
-                      </span>
-                    ) : null}
-                    <span>{currentCard.meaning}</span>
-                  </div>
-
-                  {currentCard.ipa && (
-                    <div className="mt-3 text-lg sm:text-xl font-medium text-white/70 font-mono tracking-wider">
-                      {currentCard.ipa}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Thanh huong dan mau tim/lavender o chan the */}
-            <div className="bg-[#9bb0f5] text-[#13182e] py-2.5 px-4 flex items-center justify-center gap-2 text-xs font-semibold">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="text-sm">⌨</span> Phím tắt
-              </span>
-              <span>
-                Nhấn <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">←</kbd> để học lại hoặc <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">→</kbd> nếu bạn biết câu trả lời
-              </span>
-            </div>
-          </div>
-
-          {/* Mặt sau: Từ tiếng Anh + Hình ảnh (nếu có) */}
-          <div className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[#384166] bg-[#252c48] overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)]">
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
               {currentCard && (
                 <>
@@ -462,19 +429,52 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
                     </div>
                   )}
 
-                  <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                  <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
                     {currentCard.word}
                   </div>
 
                   {currentCard.ipa && (
-                    <div className="mt-2 text-base text-white/70 font-mono">
+                    <div className="mt-2.5 text-base sm:text-lg font-medium text-white/70 font-mono tracking-wider">
                       {currentCard.ipa}
                     </div>
                   )}
 
-                  <div className="mt-3 text-sm text-white/80 italic max-w-md">
-                    {currentCard.type ? `(${currentCard.type}) ` : ''}
-                    {currentCard.meaning}
+                  <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs text-white/50">
+                    <span>Nhấn Space hoặc click để xem nghĩa</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Thanh huong dan mau tim/lavender o chan the */}
+            <div className="bg-[#9bb0f5] text-[#13182e] py-2.5 px-4 flex items-center justify-center gap-2 text-xs font-semibold">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="text-sm">⌨</span> Phím tắt
+              </span>
+              <span>
+                Nhấn <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">Space</kbd> xem nghĩa | <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">←</kbd> học lại | <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">→</kbd> đã biết
+              </span>
+            </div>
+          </div>
+
+          {/* Mặt sau: NGHĨA TIẾNG VIỆT (Chỉ hiện khi bấm lật thẻ) */}
+          <div className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[#384166] bg-[#252c48] overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)]">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              {currentCard && (
+                <>
+                  {/* Nhắc lại từ gốc nhỏ ở trên */}
+                  <div className="text-base sm:text-lg font-medium text-white/50 mb-3 font-mono">
+                    {currentCard.word} {currentCard.ipa ? `• ${currentCard.ipa}` : ''}
+                  </div>
+
+                  {/* Nghĩa tiếng Việt to, nổi bật */}
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-wide leading-snug max-w-lg">
+                    {currentCard.type ? (
+                      <span className="text-amber-400 font-semibold mr-2">
+                        ({currentCard.type})
+                      </span>
+                    ) : null}
+                    <span>{currentCard.meaning}</span>
                   </div>
                 </>
               )}
@@ -483,7 +483,7 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
             {/* Thanh huong dan chan the */}
             <div className="bg-[#9bb0f5] text-[#13182e] py-2.5 px-4 flex items-center justify-center gap-2 text-xs font-semibold">
               <span>
-                Nhấn <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">Space</kbd> hoặc click để lật lại
+                Nhấn <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">Space</kbd> lật lại | <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">←</kbd> Chưa thuộc | <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">→</kbd> Đã thuộc
               </span>
             </div>
           </div>
