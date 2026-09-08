@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "postinstall": "prisma generate || true",
+    "postinstall": "node -e \"try { require('child_process').execSync('prisma generate', { stdio: 'inherit' }); } catch {}\"",
     "generate": "prisma generate",
     "migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "migrate:create": "dotenv -e ../../.env -- prisma migrate dev --create-only",
