@@ -180,11 +180,20 @@ export function StudySetForm({
       setCards(imported);
     } else {
       // Neu danh sach hien tai chi co cac the rong thi thay the
-      const hasNonEmpty = cards.some((c) => c.term.trim() || c.definition.trim());
-      if (!hasNonEmpty) {
+      const nonEmptyCards = cards.filter((c) => c.term.trim() || c.definition.trim());
+      if (nonEmptyCards.length === 0) {
         setCards(imported);
       } else {
-        setCards((prev) => [...prev, ...imported]);
+        // Bao ve bo sung: loai bo nhung the trung voi danh sach the hien tai
+        const existingKeys = new Set(
+          nonEmptyCards
+            .map((c) => c.term.trim().replace(/\s+/g, ' ').toLowerCase())
+            .filter(Boolean),
+        );
+        const filteredNewCards = imported.filter(
+          (c) => !existingKeys.has(c.term.trim().replace(/\s+/g, ' ').toLowerCase()),
+        );
+        setCards([...nonEmptyCards, ...filteredNewCards]);
       }
     }
   }
@@ -745,6 +754,7 @@ export function StudySetForm({
         open={showImportDialog}
         onClose={() => setShowImportDialog(false)}
         onImport={handleImportedCards}
+        existingTerms={cards.map((c) => c.term)}
       />
 
       {/* Modal Huong dan phim tat */}

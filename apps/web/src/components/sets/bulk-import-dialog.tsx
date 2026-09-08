@@ -11,21 +11,44 @@ export type ImportedCard = {
   imagePath?: string | null;
 };
 
+export type ParsedCardPreview = {
+  term: string;
+  definition: string;
+  imagePath?: string | null;
+  isDuplicate: boolean;
+  duplicateReason?: 'existing' | 'batch';
+};
+
 type DelimiterOption = 'auto' | 'colon' | 'tab' | 'dash' | 'pipe' | 'comma';
 
 interface BulkImportDialogProps {
   open: boolean;
   onClose: () => void;
   onImport: (cards: ImportedCard[], mode: 'append' | 'replace') => void;
+  existingTerms?: string[];
 }
 
-export function BulkImportDialog({ open, onClose, onImport }: BulkImportDialogProps) {
+export function BulkImportDialog({
+  open,
+  onClose,
+  onImport,
+  existingTerms = [],
+}: BulkImportDialogProps) {
   const [text, setText] = useState('');
   const [termSeparator, setTermSeparator] = useState<DelimiterOption>('auto');
   const [cardSeparator, setCardSeparator] = useState<'newline' | 'semicolon'>('newline');
   const [importMode, setImportMode] = useState<'append' | 'replace'>('append');
 
-  // Parse text vao danh sach the xem truoc theo thoi gian thuc
+  // Tap hop cac tu hien da co trong bo the (chuan hoa chu thuong va khoang trang)
+  const existingSet = useMemo(() => {
+    return new Set(
+      existingTerms
+        .map((t) => t.trim().replace(/\s+/g, ' ').toLowerCase())
+        .filter(Boolean),
+    );
+  }, [existingTerms]);
+
+  // Parse text vao danh sach the xem truoc va tu dong kiem tra trung lap
   const parsedCards = useMemo(() => {
     if (!text.trim()) return [];
 
@@ -34,7 +57,8 @@ export function BulkImportDialog({ open, onClose, onImport }: BulkImportDialogPr
         ? text.split(/\r?\n/)
         : text.split(';');
 
-    const results: ImportedCard[] = [];
+    const results: ParsedCardPreview[] = [];
+    const seenInBatch = new Set<string>();
 
     for (const raw of rawBlocks) {
       const line = raw.trim();
@@ -83,7 +107,7 @@ export function BulkImportDialog({ open, onClose, onImport }: BulkImportDialogPr
           term = parts[0]?.trim() ?? '';
           definition = parts.slice(1).join(' ').trim();
         }
-        // 2. Dau hai cham (uu tien co khoang trang nhu "house (n) : nhà cửa" hoac ": ")
+        // 2. Dau hai cham
         else if (line.match(/::/)) {
           const match = line.match(/::/);
           if (match && match.index !== undefined) {
@@ -123,22 +147,60 @@ export function BulkImportDialog({ open, onClose, onImport }: BulkImportDialogPr
       }
 
       if (term || definition) {
+        const cleanTerm = term.trim();
+        const normKey = cleanTerm.replace(/\s+/g, ' ').toLowerCase();
+
+        let isDuplicate = false;
+        let duplicateReason: 'existing' | 'batch' | undefined;
+
+        if (cleanTerm) {
+          if (importMode === 'append' && existingSet.has(normKey)) {
+            isDuplicate = true;
+            duplicateReason = 'existing';
+          } else if (seenInBatch.has(normKey)) {
+            isDuplicate = true;
+            duplicateReason = 'batch';
+          } else {
+            seenInBatch.add(normKey);
+          }
+        }
+
         results.push({
           term,
           definition,
           imagePath: null,
+          isDuplicate,
+          duplicateReason,
         });
       }
     }
 
     return results;
-  }, [text, termSeparator, cardSeparator]);
+  }, [text, termSeparator, cardSeparator, importMode, existingSet]);
+
+  // Danh sach the moi hop le (da loai bo trung lap)
+  const validNewCards = useMemo(
+    () => parsedCards.filter((c) => !c.isDuplicate && c.term.trim()),
+    [parsedCards],
+  );
+
+  const duplicateCards = useMemo(
+    () => parsedCards.filter((c) => c.isDuplicate),
+    [parsedCards],
+  );
 
   if (!open) return null;
 
   function handleSubmit() {
-    if (parsedCards.length === 0) return;
-    onImport(parsedCards, importMode);
+    if (validNewCards.length === 0) return;
+    onImport(
+      validNewCards.map((c) => ({
+        term: c.term,
+        definition: c.definition,
+        imagePath: null,
+      })),
+      importMode,
+    );
     onClose();
   }
 
@@ -247,10 +309,30 @@ export function BulkImportDialog({ open, onClose, onImport }: BulkImportDialogPr
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-emerald-500" />
                   <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                    Xem trước ({parsedCards.length} thẻ được nhận diện)
+                    Xem trước ({parsedCards.length} thẻ được nhận diện
+                    {duplicateCards.length > 0 && (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                        {' '}— {validNewCards.length} thẻ hợp lệ sẽ được thêm
+                      </span>
+                    )}
+                    )
                   </span>
                 </div>
               </div>
+
+              {duplicateCards.length > 0 && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                  <AlertCircle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                  <div>
+                    <span className="font-semibold">
+                      Đã phát hiện và tự động lọc {duplicateCards.length} từ vựng bị trùng lặp.
+                    </span>{' '}
+                    <span>
+                      Hệ thống sẽ tự động bỏ qua các từ trùng để tránh làm lặp thẻ trong học phần của bạn.
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div className="max-h-56 overflow-y-auto rounded-xl border border-border bg-card">
                 <table className="w-full text-left text-xs">
@@ -263,20 +345,50 @@ export function BulkImportDialog({ open, onClose, onImport }: BulkImportDialogPr
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {parsedCards.map((card, idx) => (
-                      <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                      <tr
+                        key={idx}
+                        className={
+                          card.isDuplicate
+                            ? 'bg-amber-500/5 hover:bg-amber-500/10 transition-colors opacity-75'
+                            : 'hover:bg-muted/30 transition-colors'
+                        }
+                      >
                         <td className="px-3 py-2 text-center text-muted-foreground font-mono">
                           {idx + 1}
                         </td>
-                        <td className="px-3 py-2 font-medium text-foreground">
-                          {card.term || (
-                            <span className="text-destructive inline-flex items-center gap-1">
-                              <AlertCircle className="size-3" /> Trống
+                        <td className="px-3 py-2 font-medium">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={
+                                card.isDuplicate
+                                  ? 'line-through text-muted-foreground'
+                                  : 'text-foreground'
+                              }
+                            >
+                              {card.term || (
+                                <span className="text-destructive inline-flex items-center gap-1 not-italic no-underline">
+                                  <AlertCircle className="size-3" /> Trống
+                                </span>
+                              )}
                             </span>
-                          )}
+                            {card.isDuplicate && (
+                              <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                                {card.duplicateReason === 'existing'
+                                  ? 'Đã có trong học phần (Bỏ qua)'
+                                  : 'Trùng trong văn bản (Bỏ qua)'}
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground">
+                        <td
+                          className={`px-3 py-2 ${
+                            card.isDuplicate
+                              ? 'line-through text-muted-foreground/70'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
                           {card.definition || (
-                            <span className="text-amber-500 inline-flex items-center gap-1">
+                            <span className="text-amber-500 inline-flex items-center gap-1 not-italic no-underline">
                               <AlertCircle className="size-3" /> Chưa có nghĩa
                             </span>
                           )}
@@ -325,10 +437,14 @@ export function BulkImportDialog({ open, onClose, onImport }: BulkImportDialogPr
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={parsedCards.length === 0}
+            disabled={validNewCards.length === 0}
             className="px-6 font-semibold shadow"
           >
-            Nhập {parsedCards.length > 0 ? `(${parsedCards.length} thẻ)` : ''}
+            {validNewCards.length > 0
+              ? `Nhập (${validNewCards.length} thẻ mới)`
+              : duplicateCards.length > 0
+                ? 'Tất cả thẻ đều bị trùng'
+                : 'Nhập thẻ'}
           </Button>
         </div>
       </div>
