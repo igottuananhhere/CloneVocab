@@ -17,8 +17,25 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
+  const allowed = config.get<string[]>('allowedOrigins') ?? ['http://localhost:3000'];
+
   app.enableCors({
-    origin: config.get<string[]>('allowedOrigins') ?? ['http://localhost:3000'],
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      // Cho phep khong co origin (server-to-server, curl), cac origin trong config, hoac domain *.vercel.app va localhost
+      if (
+        !origin ||
+        allowed.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        origin.startsWith('http://localhost:')
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} khong duoc phep boi CORS`));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
