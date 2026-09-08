@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { StudySetDetail } from '@flashcard/contracts';
 import { FlipClient } from '@/components/study/flip-client';
@@ -30,16 +29,8 @@ export default async function CardsPage({ params }: PageProps) {
   if (!set) notFound();
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <header className="mb-6">
-        <Link href={`/sets/${id}`} className="text-sm text-muted-foreground hover:text-foreground">
-          ← {set.title}
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Thẻ ghi nhớ</h1>
-        <p className="text-sm text-muted-foreground">Lật thẻ và đánh giá bạn đã thuộc chưa.</p>
-      </header>
-
-      <FlipClient setId={id} cards={set.flashcards} />
+    <div className="-mx-4 -my-8 px-4 py-8 min-h-[calc(100vh-4rem)] bg-[#13182e] text-white flex flex-col items-center justify-center">
+      <FlipClient setId={id} cards={set.flashcards} setTitle={set.title} />
     </div>
   );
 }

@@ -1,117 +1,315 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, RotateCcw, RotateCw, Shuffle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  Check,
+  RotateCcw,
+  Shuffle,
+  Sparkles,
+  Trophy,
+  X,
+} from 'lucide-react';
 import type { Flashcard } from '@flashcard/contracts';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { apiBrowser } from '@/lib/api/browser';
 import { flashcardImageUrl } from '@/lib/flashcard-image';
 
-function shuffleCards(array: Flashcard[]): Flashcard[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const temp = shuffled[i]!;
-    shuffled[i] = shuffled[j]!;
-    shuffled[j] = temp;
-  }
-  return shuffled;
+export interface ParsedVocabCard {
+  id: string;
+  word: string;
+  ipa?: string;
+  type?: string;
+  meaning: string;
+  imagePath?: string | null;
 }
 
-export function FlipClient({
-  setId,
-  cards,
-}: {
+export function parseVocabCard(card: Flashcard): ParsedVocabCard {
+  // Neu dinh dang JSON
+  if (card.definition.trim().startsWith('{') && card.definition.trim().endsWith('}')) {
+    try {
+      const parsed = JSON.parse(card.definition);
+      return {
+        id: card.id,
+        word: parsed.word || card.term,
+        ipa: parsed.ipa,
+        type: parsed.type,
+        meaning: parsed.meaning || parsed.definition || card.definition,
+        imagePath: card.imagePath,
+      };
+    } catch {
+      // Tiep tuc xu ly thong thuong neu parse loi
+    }
+  }
+
+  let word = card.term.trim();
+  let rawMeaning = card.definition.trim();
+  let type: string | undefined;
+  let ipa: string | undefined;
+
+  // 1. Trich xuat phien am IPA: /.../ hoac [...]
+  const ipaRegex = /\/([^\/]+)\/|\[([^\]]+)\]/;
+  const ipaMatch = rawMeaning.match(ipaRegex) || word.match(ipaRegex);
+  if (ipaMatch) {
+    ipa = ipaMatch[0].trim();
+    rawMeaning = rawMeaning.replace(ipaMatch[0], '').trim();
+    word = word.replace(ipaMatch[0], '').trim();
+  }
+
+  // 2. Trich xuat tu loai: (n), (adj), (v), (adv), (prep), (conj), (pron), (phr), (phrase), (idiom)...
+  const typeRegex = /\((n|v|adj|adv|prep|conj|pron|phr|phrase|idiom|num|int|vi|vt|to-v)\.?\)/i;
+  const typeMatch = rawMeaning.match(typeRegex) || word.match(typeRegex);
+  if (typeMatch) {
+    type = typeMatch[1]?.toLowerCase();
+    rawMeaning = rawMeaning.replace(typeMatch[0], '').trim();
+    word = word.replace(typeMatch[0], '').trim();
+  }
+
+  // Lam sach cac dau phan cach o dau hoac cuoi nghia
+  const cleanMeaning = rawMeaning
+    .replace(/^[:\-–—\s]+/, '')
+    .replace(/[:\-–—\s]+$/, '')
+    .trim();
+
+  return {
+    id: card.id,
+    word: word || card.term,
+    ipa,
+    type,
+    meaning: cleanMeaning || card.definition,
+    imagePath: card.imagePath,
+  };
+}
+
+function shuffleArray<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = result[i]!;
+    result[i] = result[j]!;
+    result[j] = temp;
+  }
+  return result;
+}
+
+interface FlipClientProps {
   setId: string;
   cards: Flashcard[];
-}) {
-  const [isShuffled, setIsShuffled] = useState(false);
-  const [deck, setDeck] = useState<Flashcard[]>(cards);
-  const [index, setIndex] = useState(0);
+  setTitle?: string;
+}
+
+export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
+  const storageKey = `vocab_quiz_progress_${setId}`;
+  const trackPrefKey = `vocab_quiz_track_pref`;
+
+  // Parse toan bo the sang dinh dang tu vung
+  const allParsedCards = useMemo(() => cards.map(parseVocabCard), [cards]);
+
+  // Che do Theo doi tien do: mac dinh bat
+  const [trackProgress, setTrackProgress] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const pref = localStorage.getItem(trackPrefKey);
+    return pref === null ? true : pref === 'true';
+  });
+
+  // Hang doi the trong vong hien tai
+  const [roundCards, setRoundCards] = useState<ParsedVocabCard[]>(allParsedCards);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [results, setResults] = useState<Record<string, boolean>>({});
-  const [done, setDone] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  // Dong bo khi prop cards thay doi
+  // Ngan phan loai nhi phan
+  const [knownCards, setKnownCards] = useState<ParsedVocabCard[]>([]);
+  const [learningCards, setLearningCards] = useState<ParsedVocabCard[]>([]);
+
+  // Ngan xep lich su Undo
+  const [history, setHistory] = useState<
+    Array<{
+      card: ParsedVocabCard;
+      category: 'known' | 'learning';
+      prevIndex: number;
+    }>
+  >([]);
+
+  // Vong hoc
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [isRoundFinished, setIsRoundFinished] = useState(false);
+  const [, setSavingReview] = useState(false);
+
+  // Khoi phuc tien do tu localStorage neu co
   useEffect(() => {
-    setDeck(isShuffled ? shuffleCards(cards) : cards);
-    setIndex(0);
-    setFlipped(false);
-    setResults({});
-    setDone(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cards]);
-
-  const card = deck[index];
-
-  function toggleShuffle() {
-    if (isShuffled) {
-      setIsShuffled(false);
-      setDeck(cards);
-    } else {
-      setIsShuffled(true);
-      setDeck(shuffleCards(cards));
+    if (!trackProgress || typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (
+        saved &&
+        Array.isArray(saved.roundCards) &&
+        saved.roundCards.length > 0 &&
+        typeof saved.currentIndex === 'number'
+      ) {
+        setRoundCards(saved.roundCards);
+        setCurrentIndex(Math.min(saved.currentIndex, saved.roundCards.length - 1));
+        setKnownCards(saved.knownCards || []);
+        setLearningCards(saved.learningCards || []);
+        setRoundNumber(saved.roundNumber || 1);
+        setIsRoundFinished(Boolean(saved.isRoundFinished));
+      }
+    } catch {
+      // Bo qua loi
     }
-    setIndex(0);
-    setFlipped(false);
-    setResults({});
-    setDone(false);
+  }, [storageKey, trackProgress]);
+
+  // Luu tien do vao localStorage khi thay doi
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(trackPrefKey, String(trackProgress));
+
+    if (!trackProgress) {
+      localStorage.removeItem(storageKey);
+      return;
+    }
+
+    try {
+      const data = {
+        roundCards,
+        currentIndex,
+        knownCards,
+        learningCards,
+        roundNumber,
+        isRoundFinished,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(data));
+    } catch {
+      // Bo qua loi vuot han muc storage
+    }
+  }, [
+    trackProgress,
+    storageKey,
+    trackPrefKey,
+    roundCards,
+    currentIndex,
+    knownCards,
+    learningCards,
+    roundNumber,
+    isRoundFinished,
+  ]);
+
+  const currentCard = roundCards[currentIndex];
+
+  // Lat the
+  function handleFlip() {
+    setFlipped((prev) => !prev);
   }
 
-  function handleReshuffle() {
-    setIsShuffled(true);
-    setDeck(shuffleCards(cards));
-    setIndex(0);
-    setFlipped(false);
-    setResults({});
-    setDone(false);
-  }
+  // Phân loại: 'known' (✓ / →) hoặc 'learning' (✗ / ←)
+  function handleClassify(category: 'known' | 'learning') {
+    if (!currentCard || isRoundFinished) return;
 
-  function record(known: boolean) {
-    if (!card) return;
-    const all = { ...results, [card.id]: known };
-    setResults(all);
-    setFlipped(false);
-    if (index + 1 < deck.length) {
-      setIndex(index + 1);
+    const targetCard = currentCard;
+    const nextIndex = currentIndex + 1;
+
+    setHistory((prev) => [
+      ...prev,
+      { card: targetCard, category, prevIndex: currentIndex },
+    ]);
+
+    if (category === 'known') {
+      setKnownCards((prev) => [...prev.filter((c) => c.id !== targetCard.id), targetCard]);
+      setLearningCards((prev) => prev.filter((c) => c.id !== targetCard.id));
     } else {
-      finish(all);
+      setLearningCards((prev) => [...prev.filter((c) => c.id !== targetCard.id), targetCard]);
+      setKnownCards((prev) => prev.filter((c) => c.id !== targetCard.id));
+    }
+
+    setFlipped(false);
+
+    if (nextIndex < roundCards.length) {
+      setCurrentIndex(nextIndex);
+    } else {
+      setIsRoundFinished(true);
+      if (category === 'known' && learningCards.length === 0) {
+        submitReview(allParsedCards.map((c) => ({ flashcardId: c.id, correct: true })));
+      }
     }
   }
 
-  async function finish(all: Record<string, boolean>) {
-    setSaving(true);
+  // Hoàn tác Undo (↺ / Z)
+  function handleUndo() {
+    if (history.length === 0) return;
+
+    const lastAction = history[history.length - 1]!;
+    setHistory((prev) => prev.slice(0, -1));
+
+    if (lastAction.category === 'known') {
+      setKnownCards((prev) => prev.filter((c) => c.id !== lastAction.card.id));
+    } else {
+      setLearningCards((prev) => prev.filter((c) => c.id !== lastAction.card.id));
+    }
+
+    setCurrentIndex(lastAction.prevIndex);
+    setFlipped(false);
+    setIsRoundFinished(false);
+  }
+
+  // Trộn các thẻ còn lại (⇌ / S)
+  function handleShuffle() {
+    if (roundCards.length <= 1) return;
+
+    const unreviewed = roundCards.slice(currentIndex);
+    const shuffled = shuffleArray(unreviewed);
+    const newQueue = [...roundCards.slice(0, currentIndex), ...shuffled];
+
+    setRoundCards(newQueue);
+    setFlipped(false);
+  }
+
+  // Ôn lại ngay các từ chưa thuộc (Vòng tiếp theo)
+  function handleRelearnUnmastered() {
+    if (learningCards.length === 0) return;
+
+    setRoundCards([...learningCards]);
+    setLearningCards([]);
+    setCurrentIndex(0);
+    setFlipped(false);
+    setHistory([]);
+    setRoundNumber((r) => r + 1);
+    setIsRoundFinished(false);
+  }
+
+  // Học lại toàn bộ từ đầu
+  function handleRestartAll() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(storageKey);
+    }
+    setRoundCards(allParsedCards);
+    setCurrentIndex(0);
+    setFlipped(false);
+    setKnownCards([]);
+    setLearningCards([]);
+    setHistory([]);
+    setRoundNumber(1);
+    setIsRoundFinished(false);
+  }
+
+  // Gửi đánh giá lên API backend
+  async function submitReview(items: Array<{ flashcardId: string; correct: boolean }>) {
+    setSavingReview(true);
     try {
       await apiBrowser(`/study-sets/${setId}/review`, {
         method: 'POST',
-        body: {
-          results: Object.entries(all).map(([flashcardId, correct]) => ({
-            flashcardId,
-            correct,
-          })),
-        },
+        body: { results: items },
       });
+    } catch {
+      // Non-blocking
     } finally {
-      setSaving(false);
-      setDone(true);
+      setSavingReview(false);
     }
   }
 
-  function restart() {
-    setResults({});
-    setIndex(0);
-    setFlipped(false);
-    setDone(false);
-    if (isShuffled) {
-      setDeck(shuffleCards(cards));
-    }
-  }
-
+  // Xu ly phim tat ban phim
   useEffect(() => {
-    if (done) return;
-
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
       if (
@@ -125,263 +323,318 @@ export function FlipClient({
 
       if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
-        setFlipped((prev) => !prev);
+        handleFlip();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        if (flipped) {
-          record(false);
-        } else if (index > 0) {
-          setIndex((prev) => prev - 1);
-          setFlipped(false);
-        }
+        handleClassify('learning');
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        if (flipped) {
-          record(true);
-        } else if (index + 1 < deck.length) {
-          setIndex((prev) => prev + 1);
-          setFlipped(false);
-        }
-      } else if (e.key === '1' && flipped) {
+        handleClassify('known');
+      } else if ((e.key === 'z' || e.key === 'Z') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
-        record(false);
-      } else if (e.key === '2' && flipped) {
+        handleUndo();
+      } else if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
-        record(true);
-      } else if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault();
-        toggleShuffle();
+        handleShuffle();
       }
     }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flipped, index, deck.length, done, card, isShuffled]);
+  }, [currentIndex, roundCards.length, currentCard, isRoundFinished, history.length]);
 
-  const knownCount = Object.values(results).filter(Boolean).length;
-  const progressPercent = Math.round(((index + (done ? 1 : 0)) / deck.length) * 100);
-
-  if (done) {
+  if (allParsedCards.length === 0) {
     return (
-      <Card>
-        <CardContent className="space-y-4 py-8 text-center">
-          <p className="text-3xl font-bold">Hoàn thành!</p>
-          <p className="text-muted-foreground">
-            Đã thuộc {knownCount} / {deck.length} thẻ
-          </p>
-          <div className="flex justify-center gap-3">
-            <Button onClick={restart} className="gap-2">
-              <RotateCcw className="size-4" />
-              <span>Học lại</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsShuffled(true);
-                setDeck(shuffleCards(cards));
-                restart();
-              }}
-              className="gap-2"
-            >
-              <Shuffle className="size-4" />
-              <span>Trộn thẻ & Học lại</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="py-16 text-center text-white/80 space-y-4">
+        <p className="text-xl font-semibold">Học phần này chưa có thẻ ghi nhớ nào.</p>
+        <Link href={`/sets/${setId}`} className="text-sm text-primary hover:underline">
+          ← Quay lại trang học phần
+        </Link>
+      </div>
     );
   }
 
-  if (!card) return null;
-
-  const imgUrl = flashcardImageUrl(card.imagePath);
-
   return (
-    <div className="space-y-3">
-      {/* Thanh dieu khien tren the */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {deck.length} thẻ ghi nhớ
-          </span>
-          {isShuffled && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary animate-in fade-in duration-200">
-              <Shuffle className="size-3" /> Đã trộn ngẫu nhiên
-            </span>
-          )}
+    <div className="flex w-full max-w-3xl flex-col items-center justify-between min-h-[560px] select-none text-white px-2 py-4">
+      {/* Header thong tin */}
+      <div className="w-full flex items-center justify-between mb-4">
+        <Link
+          href={`/sets/${setId}`}
+          className="inline-flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="size-4" />
+          <span className="hidden sm:inline">Quay lại học phần</span>
+        </Link>
+
+        <div className="text-center flex-1 mx-4">
+          <div className="text-xl font-bold tracking-tight text-white/95">
+            {currentIndex + 1} / {roundCards.length}
+          </div>
+          <div className="text-xs font-semibold tracking-wider uppercase text-white/60 line-clamp-1 mt-0.5">
+            {setTitle || 'BỘ THẺ TỪ VỰNG'}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {isShuffled && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleReshuffle}
-              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
-              title="Xáo trộn lại ngẫu nhiên một lượt mới"
-            >
-              <RotateCw className="size-3.5" />
-              <span>Xáo lại</span>
-            </Button>
+        <div className="w-20 text-right">
+          {roundNumber > 1 && (
+            <span className="text-[11px] font-medium text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+              Vòng {roundNumber}
+            </span>
           )}
-
-          <Button
-            type="button"
-            variant={isShuffled ? 'secondary' : 'outline'}
-            size="sm"
-            onClick={toggleShuffle}
-            className={`h-8 gap-1.5 text-xs font-medium transition-all ${
-              isShuffled
-                ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary shadow-xs'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-            title={
-              isShuffled
-                ? 'Nhấn để tắt trộn và quay về thứ tự ban đầu (Phím S)'
-                : 'Trộn thẻ ngẫu nhiên linh tinh (Phím S)'
-            }
-          >
-            <Shuffle className="size-3.5" />
-            <span>{isShuffled ? 'Đang trộn' : 'Trộn thẻ'}</span>
-            <kbd className="hidden sm:inline-block rounded border bg-background/60 px-1 py-0.5 text-[9px] font-mono text-muted-foreground">
-              S
-            </kbd>
-          </Button>
         </div>
       </div>
 
-      <Card className="overflow-hidden shadow-sm">
-        {/* Thanh tien trinh muot ma */}
-        <div className="h-1.5 w-full bg-muted">
-          <div
-            className="h-full bg-primary transition-all duration-300 ease-out"
-            style={{
-              width: `${Math.min(100, Math.max(0, ((index + 1) / deck.length) * 100))}%`,
-            }}
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setFlipped((value) => !value)}
-          className="flex min-h-[19rem] w-full flex-col items-center justify-center p-6 text-center transition-colors hover:bg-muted/10 focus:outline-none"
-        >
-          {imgUrl && (
-            <div className="mb-4 max-h-48 max-w-xs overflow-hidden rounded-lg border border-border bg-muted">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imgUrl}
-                alt="Ảnh minh họa"
-                className="max-h-48 w-auto object-contain"
-              />
-            </div>
-          )}
-          <span className="text-2xl font-semibold select-none">{flipped ? card.definition : card.term}</span>
-          <span className="mt-3 text-sm text-muted-foreground select-none">
-            {flipped ? 'Mặt sau (Định nghĩa)' : 'Mặt trước (Thuật ngữ) — nhấn hoặc bấm Space để lật'}
+      {/* 2 Badge: Dang hoc & Da biet */}
+      <div className="w-full max-w-2xl flex items-center justify-between mb-3 px-1">
+        {/* Góc trái: Đang học */}
+        <div className="flex items-center gap-2 border border-amber-500/80 bg-amber-500/10 px-3.5 py-1 rounded-full text-xs font-bold text-amber-400 shadow-sm">
+          <span className="flex size-4 items-center justify-center rounded-full bg-amber-500/20 text-[11px]">
+            {learningCards.length}
           </span>
-        </button>
+          <span>Đang học</span>
+        </div>
 
-        {/* Cac nut hanh dong & phim tat */}
-        {!flipped ? (
-          <div className="flex items-center justify-between border-t border-border p-4">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={index === 0}
-              onClick={() => {
-                setIndex((prev) => prev - 1);
-                setFlipped(false);
-              }}
-              className="gap-1 text-muted-foreground"
-            >
-              <ChevronLeft className="size-4" />
-              <kbd className="hidden sm:inline-block rounded border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-                ←
-              </kbd>
-              <span>Trước</span>
-            </Button>
+        {/* Góc phải: Đã biết */}
+        <div className="flex items-center gap-2 border border-emerald-500/80 bg-emerald-500/10 px-3.5 py-1 rounded-full text-xs font-bold text-emerald-400 shadow-sm">
+          <span>Đã biết</span>
+          <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500/20 text-[11px]">
+            {knownCards.length}
+          </span>
+        </div>
+      </div>
 
-            <Button type="button" onClick={() => setFlipped(true)} className="gap-2">
-              <span>Lật thẻ</span>
-              <kbd className="hidden sm:inline-block rounded border border-primary-foreground/30 bg-primary-foreground/10 px-1.5 py-0.5 text-[10px] font-mono">
-                Space
-              </kbd>
-            </Button>
+      {/* Khung the Flashcard 3D */}
+      <div className="w-full max-w-2xl [perspective:1200px] my-auto">
+        <div
+          onClick={handleFlip}
+          className={`relative h-[340px] sm:h-[390px] w-full cursor-pointer rounded-2xl transition-transform duration-500 [transform-style:preserve-3d] shadow-2xl ${
+            flipped ? '[transform:rotateY(180deg)]' : ''
+          }`}
+        >
+          {/* Mặt trước: (Từ loại) Nghĩa + /IPA/ */}
+          <div className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[#384166] bg-[#252c48] overflow-hidden [backface-visibility:hidden]">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              {currentCard && (
+                <>
+                  <div className="text-2xl sm:text-3xl font-semibold text-white tracking-wide leading-snug max-w-md">
+                    {currentCard.type ? (
+                      <span className="text-white/80 mr-1.5 font-normal">
+                        ({currentCard.type})
+                      </span>
+                    ) : null}
+                    <span>{currentCard.meaning}</span>
+                  </div>
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={index + 1 >= deck.length}
-              onClick={() => {
-                setIndex((prev) => prev + 1);
-                setFlipped(false);
-              }}
-              className="gap-1 text-muted-foreground"
-            >
-              <span>Sau</span>
-              <kbd className="hidden sm:inline-block rounded border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-                →
-              </kbd>
-              <ChevronRight className="size-4" />
-            </Button>
+                  {currentCard.ipa && (
+                    <div className="mt-3 text-lg sm:text-xl font-medium text-white/70 font-mono tracking-wider">
+                      {currentCard.ipa}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Thanh huong dan mau tim/lavender o chan the */}
+            <div className="bg-[#9bb0f5] text-[#13182e] py-2.5 px-4 flex items-center justify-center gap-2 text-xs font-semibold">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="text-sm">⌨</span> Phím tắt
+              </span>
+              <span>
+                Nhấn <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">←</kbd> để học lại hoặc <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">→</kbd> nếu bạn biết câu trả lời
+              </span>
+            </div>
           </div>
-        ) : (
-          <div className="flex items-center justify-center gap-4 border-t border-border p-4">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={saving}
-              onClick={() => record(false)}
-              className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <kbd className="rounded border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-mono">
-                1 hoặc ←
-              </kbd>
-              <span>Chưa thuộc</span>
-            </Button>
-            <Button
-              type="button"
-              disabled={saving}
-              onClick={() => record(true)}
-              className="gap-2 bg-success text-success-foreground hover:bg-success/90"
-            >
-              <span>Đã thuộc</span>
-              <kbd className="rounded border border-white/30 bg-black/10 px-1.5 py-0.5 text-[10px] font-mono">
-                2 hoặc →
-              </kbd>
-            </Button>
-          </div>
-        )}
 
-        {/* Footer chi so */}
-        <div className="flex flex-wrap items-center justify-between border-t border-border/50 bg-muted/20 px-4 py-2.5 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span>
-              Thẻ {index + 1} / {deck.length} ({progressPercent}%)
-            </span>
-            {isShuffled && (
-              <span className="text-[11px] font-medium text-primary">• Đã trộn</span>
-            )}
-          </div>
-          <div className="hidden sm:flex items-center gap-3">
-            <span>
-              <kbd className="rounded border bg-background px-1 font-mono text-[10px]">Space</kbd> Lật
-            </span>
-            <span>
-              <kbd className="rounded border bg-background px-1 font-mono text-[10px]">←</kbd>{' '}
-              <kbd className="rounded border bg-background px-1 font-mono text-[10px]">→</kbd> Chuyển / Đánh giá
-            </span>
-            <span>
-              <kbd className="rounded border bg-background px-1 font-mono text-[10px]">S</kbd> Trộn thẻ
-            </span>
+          {/* Mặt sau: Từ tiếng Anh + Hình ảnh (nếu có) */}
+          <div className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[#384166] bg-[#252c48] overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)]">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              {currentCard && (
+                <>
+                  {currentCard.imagePath && (
+                    <div className="mb-4 max-h-36 max-w-xs overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={flashcardImageUrl(currentCard.imagePath) || ''}
+                        alt="Ảnh minh họa"
+                        className="max-h-36 w-auto object-contain"
+                      />
+                    </div>
+                  )}
+
+                  <div className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                    {currentCard.word}
+                  </div>
+
+                  {currentCard.ipa && (
+                    <div className="mt-2 text-base text-white/70 font-mono">
+                      {currentCard.ipa}
+                    </div>
+                  )}
+
+                  <div className="mt-3 text-sm text-white/80 italic max-w-md">
+                    {currentCard.type ? `(${currentCard.type}) ` : ''}
+                    {currentCard.meaning}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Thanh huong dan chan the */}
+            <div className="bg-[#9bb0f5] text-[#13182e] py-2.5 px-4 flex items-center justify-center gap-2 text-xs font-semibold">
+              <span>
+                Nhấn <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">Space</kbd> hoặc click để lật lại
+              </span>
+            </div>
           </div>
         </div>
-      </Card>
+      </div>
+
+      {/* 3 cum nut duoi cung */}
+      <div className="w-full max-w-2xl flex items-center justify-between mt-6 px-2">
+        {/* Toggle Theo doi tien do */}
+        <div className="flex items-center gap-2.5 text-xs text-white/70">
+          <label
+            htmlFor="toggle-track"
+            className="cursor-pointer select-none hover:text-white transition-colors"
+          >
+            Theo dõi tiến độ
+          </label>
+          <button
+            id="toggle-track"
+            type="button"
+            role="switch"
+            aria-checked={trackProgress}
+            onClick={() => setTrackProgress((prev) => !prev)}
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${
+              trackProgress ? 'bg-primary' : 'bg-white/20'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out mt-0.5 ml-0.5 ${
+                trackProgress ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* 2 nut trung tam: ✗ va ✓ */}
+        <div className="flex items-center gap-4">
+          {/* Nut ✗ (Chua thuoc / Hoc lai) */}
+          <button
+            type="button"
+            onClick={() => handleClassify('learning')}
+            title="Chưa thuộc (Phím ←)"
+            className="size-14 rounded-2xl border border-rose-500/30 bg-[#252c48] text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/60 hover:text-rose-300 transition-all flex items-center justify-center shadow-lg active:scale-95"
+          >
+            <X className="size-6 stroke-[2.5]" />
+          </button>
+
+          {/* Nut ✓ (Da biet) */}
+          <button
+            type="button"
+            onClick={() => handleClassify('known')}
+            title="Đã biết (Phím →)"
+            className="size-14 rounded-2xl border border-emerald-500/30 bg-[#252c48] text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/60 hover:text-emerald-300 transition-all flex items-center justify-center shadow-lg active:scale-95"
+          >
+            <Check className="size-6 stroke-[2.5]" />
+          </button>
+        </div>
+
+        {/* 2 nut chuc nang: Undo & Shuffle */}
+        <div className="flex items-center gap-2">
+          {/* Nut Undo */}
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={history.length === 0}
+            title="Hoàn tác (Phím Z)"
+            className="size-10 rounded-xl border border-white/10 bg-[#252c48] text-white/70 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+          >
+            <RotateCcw className="size-4" />
+          </button>
+
+          {/* Nut Shuffle */}
+          <button
+            type="button"
+            onClick={handleShuffle}
+            title="Trộn thẻ ngẫu nhiên (Phím S)"
+            className="size-10 rounded-xl border border-white/10 bg-[#252c48] text-white/70 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center active:scale-95"
+          >
+            <Shuffle className="size-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Popup tong ket vong hoc */}
+      {isRoundFinished && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-[#384166] bg-[#252c48] p-6 shadow-2xl text-center space-y-5 animate-in zoom-in-95">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/20 text-primary">
+              {learningCards.length === 0 ? (
+                <Trophy className="size-8 text-amber-400" />
+              ) : (
+                <Sparkles className="size-8 text-primary" />
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-2xl font-bold text-white">
+                {learningCards.length === 0
+                  ? 'Tuyệt vời! Hoàn thành 100%'
+                  : `Kết thúc Vòng ${roundNumber}!`}
+              </h3>
+              <p className="mt-2 text-sm text-white/70">
+                Bạn đã thuộc{' '}
+                <span className="font-bold text-emerald-400">
+                  {knownCards.length}
+                </span>{' '}
+                / {allParsedCards.length} từ vựng (
+                {Math.round((knownCards.length / allParsedCards.length) * 100)}%).
+              </p>
+
+              {learningCards.length > 0 ? (
+                <p className="mt-1 text-xs text-amber-400 font-medium">
+                  Còn {learningCards.length} từ trong ngăn &quot;Đang học&quot; cần ôn lại.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-emerald-400 font-medium">
+                  Toàn bộ từ vựng đã được bạn nắm vững hoàn hảo!
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2.5 pt-2">
+              {learningCards.length > 0 && (
+                <Button
+                  type="button"
+                  onClick={handleRelearnUnmastered}
+                  className="w-full h-11 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg"
+                >
+                  Ôn lại ngay ({learningCards.length} từ chưa thuộc)
+                </Button>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleRestartAll}
+                className="w-full h-11 text-sm font-semibold border-white/20 bg-white/5 hover:bg-white/10 text-white"
+              >
+                Học lại toàn bộ từ đầu
+              </Button>
+
+              <Link
+                href={`/sets/${setId}`}
+                className="block text-xs text-white/60 hover:text-white pt-1 transition-colors"
+              >
+                Về trang chi tiết bộ thẻ →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
