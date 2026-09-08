@@ -113,5 +113,8 @@ export const studyStatsSchema = z.object({
   dueToday: z.number().int(),
   testCount: z.number().int(),
   matchBestMs: z.number().int().nullable(),
+  wordsStudiedToday: z.number().int().default(0),
+  wordsStudiedThisWeek: z.number().int().default(0),
+  totalSetsAdded: z.number().int().default(0),
 });
 export type StudyStats = z.infer<typeof studyStatsSchema>;

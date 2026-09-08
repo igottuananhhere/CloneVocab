@@ -196,7 +196,20 @@ export class StudyService {
   /** Tong hop tien do hoc tap cua nguoi dung tren moi bo the. */
   async getStats(user: AuthenticatedUser): Promise<StudyStats> {
     const now = new Date();
-    const [studied, mastered, due, tests, matchAgg] = await Promise.all([
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      studied,
+      mastered,
+      due,
+      tests,
+      matchAgg,
+      studiedToday,
+      studiedWeek,
+      ownedSetsCount,
+      savedSetsCount,
+    ] = await Promise.all([
       this.prisma.client.studyProgress.count({ where: { userId: user.id } }),
       this.prisma.client.studyProgress.count({
         where: { userId: user.id, masteryLevel: { gte: MASTERED_LEVEL } },
@@ -209,6 +222,20 @@ export class StudyService {
         where: { userId: user.id },
         _min: { durationMs: true },
       }),
+      this.prisma.client.studyProgress.count({
+        where: {
+          userId: user.id,
+          lastReviewedAt: { gte: startOfToday },
+        },
+      }),
+      this.prisma.client.studyProgress.count({
+        where: {
+          userId: user.id,
+          lastReviewedAt: { gte: startOfWeek },
+        },
+      }),
+      this.prisma.client.studySet.count({ where: { ownerId: user.id } }),
+      this.prisma.client.savedSet.count({ where: { userId: user.id } }),
     ]);
 
     return {
@@ -217,6 +244,9 @@ export class StudyService {
       dueToday: due,
       testCount: tests,
       matchBestMs: matchAgg._min.durationMs ?? null,
+      wordsStudiedToday: studiedToday,
+      wordsStudiedThisWeek: studiedWeek,
+      totalSetsAdded: ownedSetsCount + savedSetsCount,
     };
   }
 

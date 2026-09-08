@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { BookOpen, Layers, Repeat, Timer } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +33,10 @@ export default async function HomePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect('/dashboard');
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4">

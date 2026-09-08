@@ -8,6 +8,7 @@ type Delegate = Record<string, unknown>;
 
 function makeService(delegates: {
   studySet?: Delegate;
+  savedSet?: Delegate;
   studyProgress?: Delegate;
   testResult?: Delegate;
   matchResult?: Delegate;
@@ -15,6 +16,7 @@ function makeService(delegates: {
   const prisma = {
     client: {
       studySet: delegates.studySet ?? {},
+      savedSet: delegates.savedSet ?? {},
       studyProgress: delegates.studyProgress ?? {},
       testResult: delegates.testResult ?? {},
       matchResult: delegates.matchResult ?? {},
@@ -158,8 +160,16 @@ describe('StudyService', () => {
     it('tong hop tu cac bang tien do', async () => {
       const service = makeService({
         studyProgress: {
-          count: vi.fn().mockResolvedValueOnce(10).mockResolvedValueOnce(4).mockResolvedValueOnce(2),
+          count: vi
+            .fn()
+            .mockResolvedValueOnce(10) // studied
+            .mockResolvedValueOnce(4)  // mastered
+            .mockResolvedValueOnce(2)  // due
+            .mockResolvedValueOnce(5)  // studiedToday
+            .mockResolvedValueOnce(8), // studiedWeek
         },
+        studySet: { count: vi.fn().mockResolvedValue(3) },
+        savedSet: { count: vi.fn().mockResolvedValue(2) },
         testResult: { count: vi.fn().mockResolvedValue(3) },
         matchResult: { aggregate: vi.fn().mockResolvedValue({ _min: { durationMs: 12000 } }) },
       });
@@ -172,6 +182,9 @@ describe('StudyService', () => {
         dueToday: 2,
         testCount: 3,
         matchBestMs: 12000,
+        wordsStudiedToday: 5,
+        wordsStudiedThisWeek: 8,
+        totalSetsAdded: 5,
       });
     });
   });
