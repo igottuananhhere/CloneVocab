@@ -46,12 +46,8 @@ export default async function EditStudySetPage({ params }: PageProps) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-bold tracking-tight">Chỉnh sửa bộ thẻ</h1>
-      <p className="mt-2 text-muted-foreground">Cập nhật thông tin và danh sách thẻ.</p>
-      <div className="mt-8">
-        <StudySetForm mode="edit" initial={set} />
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6">
+      <StudySetForm mode="edit" initial={set} />
     </div>
   );
 }
