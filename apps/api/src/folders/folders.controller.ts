@@ -8,9 +8,11 @@ import {
   Post,
 } from '@nestjs/common';
 import {
+  addBatchSetsToFolderSchema,
   createFolderSchema,
   updateFolderSchema,
   uuidSchema,
+  type AddBatchSetsToFolderInput,
   type CreateFolderInput,
   type FolderDetail,
   type FolderSummary,
@@ -78,6 +80,15 @@ export class FoldersController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ success: boolean }> {
     return this.folders.addSet(id, setId, user);
+  }
+
+  @Post(':id/sets/batch')
+  addSetsBatch(
+    @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
+    @Body(new ZodValidationPipe(addBatchSetsToFolderSchema)) input: AddBatchSetsToFolderInput,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ success: boolean; count: number }> {
+    return this.folders.addSetsBatch(id, input.setIds, user);
   }
 
   @Delete(':id/sets/:setId')

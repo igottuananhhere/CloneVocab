@@ -112,20 +112,24 @@ model Flashcard {
   @@map("flashcards")
 }
 
-/// Thu muc ca nhan de gom nhom bo the. Chi chu so huu nhin thay.
+/// Thu muc ca nhan de gom nhom bo the. Chi chu so huu nhin thay. Ho tro cay da cap (parent -> children).
 model Folder {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   ownerId     String   @map("owner_id") @db.Uuid
+  parentId    String?  @map("parent_id") @db.Uuid
   name        String   @db.VarChar(80)
   description String?  @db.VarChar(500)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  owner Profile          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  links FolderStudySet[]
+  owner    Profile          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  parent   Folder?          @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[]         @relation("FolderHierarchy")
+  links    FolderStudySet[]
 
-  @@unique([ownerId, name])
+  @@unique([ownerId, parentId, name])
   @@index([ownerId])
+  @@index([parentId])
   @@map("folders")
 }
 

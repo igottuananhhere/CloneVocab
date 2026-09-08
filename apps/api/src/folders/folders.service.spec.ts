@@ -37,10 +37,13 @@ const stranger: AuthenticatedUser = {
 const baseFolder = {
   id: 'ffffffff-1111-4111-8111-ffffffffffff',
   ownerId: owner.id,
+  parentId: null,
   name: 'Từ vựng JLPT N3',
   description: 'Gom các bộ thẻ N3',
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  children: [] as Array<Record<string, unknown>>,
+  parent: null,
 };
 
 describe('FoldersService', () => {
@@ -57,12 +60,45 @@ describe('FoldersService', () => {
       expect(create).toHaveBeenCalledWith({
         data: {
           ownerId: owner.id,
+          parentId: null,
           name: 'Từ vựng JLPT N3',
           description: 'Gom các bộ thẻ N3',
         },
       });
       expect(result.id).toBe(baseFolder.id);
       expect(result.setCount).toBe(0);
+      expect(result.subfolderCount).toBe(0);
+    });
+
+    it('tao thu muc con khi co parentId', async () => {
+      const parentId = 'parent-123';
+      const findUnique = vi.fn().mockResolvedValue({ id: parentId, ownerId: owner.id });
+      const create = vi.fn().mockResolvedValue({
+        ...baseFolder,
+        id: 'child-123',
+        parentId,
+        name: 'HOUSE',
+      });
+      const service = makeService({ folder: { findUnique, create } });
+
+      const result = await service.create(owner, {
+        name: 'HOUSE',
+        parentId,
+      });
+
+      expect(findUnique).toHaveBeenCalledWith({
+        where: { id: parentId },
+        select: { id: true, ownerId: true },
+      });
+      expect(create).toHaveBeenCalledWith({
+        data: {
+          ownerId: owner.id,
+          parentId,
+          name: 'HOUSE',
+          description: null,
+        },
+      });
+      expect(result.parentId).toBe(parentId);
     });
 
     it('nem ConflictException khi ten thu muc bi trung', async () => {

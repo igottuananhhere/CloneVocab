@@ -23,6 +23,15 @@ describe('createFolderSchema', () => {
     expect(valid.name).toBe('Từ vựng JLPT N3');
     expect(valid.description).toBe('Gom các bộ thẻ ôn tập JLPT');
   });
+
+  it('chap nhan parentId hop le', () => {
+    const valid = createFolderSchema.parse({
+      name: 'HOUSE',
+      parentId: '11111111-1111-4111-8111-111111111111',
+    });
+    expect(valid.name).toBe('HOUSE');
+    expect(valid.parentId).toBe('11111111-1111-4111-8111-111111111111');
+  });
 });
 
 describe('updateFolderSchema', () => {
@@ -40,9 +49,11 @@ describe('folderSummarySchema', () => {
     const raw = {
       id: '11111111-1111-4111-8111-111111111111',
       ownerId: '22222222-2222-4222-8222-222222222222',
+      parentId: '33333333-3333-4333-8333-333333333333',
       name: 'Tiếng Anh Giao Tiếp',
       description: null,
       setCount: 5,
+      subfolderCount: 2,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };

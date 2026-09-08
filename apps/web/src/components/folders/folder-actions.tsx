@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
-import { Edit, FolderX, Loader2, Trash2, X } from 'lucide-react';
+import { Edit, FolderX, Loader2, MoreHorizontal, Trash2, X } from 'lucide-react';
 import type { FolderDetail, FolderSummary } from '@flashcard/contracts';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
@@ -12,6 +12,7 @@ import { apiBrowser } from '@/lib/api/browser';
 
 export function FolderActions({ folder }: { folder: FolderDetail | FolderSummary }) {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [name, setName] = useState(folder.name);
   const [description, setDescription] = useState(folder.description ?? '');
@@ -63,33 +64,50 @@ export function FolderActions({ folder }: { folder: FolderDetail | FolderSummary
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <Button
+      <div className="relative">
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setName(folder.name);
-            setDescription(folder.description ?? '');
-            setOpenEdit(true);
-          }}
-          className="gap-1.5"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          className="inline-flex size-9 items-center justify-center rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          title="Tùy chọn thư mục"
         >
-          <Edit className="size-4" aria-hidden="true" />
-          <span>Sửa thư mục</span>
-        </Button>
+          <MoreHorizontal className="size-5" />
+          <span className="sr-only">Tùy chọn thư mục</span>
+        </button>
 
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          disabled={deleting}
-          onClick={handleDelete}
-          className="gap-1.5"
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-          <span>{deleting ? 'Đang xóa...' : 'Xóa thư mục'}</span>
-        </Button>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
+            <div className="absolute right-0 top-full mt-1.5 z-30 w-44 rounded-xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in zoom-in-95">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setName(folder.name);
+                  setDescription(folder.description ?? '');
+                  setOpenEdit(true);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <Edit className="size-4 text-muted-foreground" />
+                <span>Đổi tên / Sửa</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleDelete();
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 className="size-4" />
+                <span>{deleting ? 'Đang xóa...' : 'Xóa thư mục'}</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {openEdit && (

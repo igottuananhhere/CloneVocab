@@ -83,6 +83,14 @@ export function AddToFolderDialog({
     }
   }
 
+  const [selectedParentId, setSelectedParentId] = useState<string>('');
+
+  // Phan cap cay thu muc
+  const rootFolders = folders.filter((f) => !f.parentId);
+  const getChildren = (parentId: string) => folders.filter((f) => f.parentId === parentId);
+  // Cac folder con ma parent khong co trong list (neu co)
+  const orphanChildren = folders.filter((f) => f.parentId && !folders.some((p) => p.id === f.parentId));
+
   async function handleQuickCreate(e: FormEvent) {
     e.preventDefault();
     if (!newFolderName.trim()) return;
@@ -91,15 +99,19 @@ export function AddToFolderDialog({
     try {
       const created = await apiBrowser<FolderSummary>('/folders', {
         method: 'POST',
-        body: { name: newFolderName.trim() },
+        body: {
+          name: newFolderName.trim(),
+          parentId: selectedParentId || undefined,
+        },
       });
 
       // Tu dong them bo the vao thu muc moi tao
       await apiBrowser(`/folders/${created.id}/sets/${setId}`, { method: 'POST' });
 
-      setFolders((prev) => [created, ...prev]);
+      setFolders((prev) => [...prev, created]);
       setSelectedFolderIds((prev) => new Set(prev).add(created.id));
       setNewFolderName('');
+      setSelectedParentId('');
       setShowCreate(false);
       router.refresh();
     } catch {
@@ -107,6 +119,48 @@ export function AddToFolderDialog({
     } finally {
       setCreating(false);
     }
+  }
+
+  function renderFolderRow(folder: FolderSummary, isChild = false) {
+    const isChecked = selectedFolderIds.has(folder.id);
+    const isUpdating = updatingId === folder.id;
+
+    return (
+      <li key={folder.id}>
+        <button
+          type="button"
+          onClick={() => handleToggle(folder.id)}
+          disabled={isUpdating}
+          className={cn(
+            'flex w-full items-center justify-between p-3 text-left hover:bg-muted/50 transition-colors',
+            isChild && 'pl-8 bg-muted/20',
+          )}
+        >
+          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+            {isChild && <span className="text-muted-foreground/60 text-xs">└</span>}
+            <Folder className={cn('size-4 shrink-0', isChild ? 'text-primary/70' : 'text-muted-foreground')} />
+            <span className={cn('truncate text-sm', isChild ? 'text-foreground/90' : 'font-medium')}>
+              {folder.name}
+            </span>
+          </div>
+
+          <div
+            className={cn(
+              'flex size-5 shrink-0 items-center justify-center rounded border transition-colors',
+              isChecked
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-input bg-background',
+            )}
+          >
+            {isUpdating ? (
+              <Loader2 className="size-3 animate-spin text-current" />
+            ) : isChecked ? (
+              <Check className="size-3.5" />
+            ) : null}
+          </div>
+        </button>
+      </li>
+    );
   }
 
   return (
@@ -150,48 +204,23 @@ export function AddToFolderDialog({
                     Bạn chưa có thư mục nào. Hãy tạo thư mục đầu tiên để gom nhóm các bộ thẻ.
                   </p>
                 ) : (
-                  <ul className="max-h-60 overflow-y-auto divide-y divide-border rounded-lg border border-border">
-                    {folders.map((folder) => {
-                      const isChecked = selectedFolderIds.has(folder.id);
-                      const isUpdating = updatingId === folder.id;
-
+                  <ul className="max-h-64 overflow-y-auto divide-y divide-border rounded-lg border border-border">
+                    {rootFolders.map((root) => {
+                      const children = getChildren(root.id);
                       return (
-                        <li key={folder.id}>
-                          <button
-                            type="button"
-                            onClick={() => handleToggle(folder.id)}
-                            disabled={isUpdating}
-                            className="flex w-full items-center justify-between p-3 text-left hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-center gap-3 min-w-0 pr-2">
-                              <Folder className="size-4 shrink-0 text-muted-foreground" />
-                              <span className="truncate text-sm font-medium">{folder.name}</span>
-                            </div>
-
-                            <div
-                              className={cn(
-                                'flex size-5 shrink-0 items-center justify-center rounded border transition-colors',
-                                isChecked
-                                  ? 'border-primary bg-primary text-primary-foreground'
-                                  : 'border-input bg-background',
-                              )}
-                            >
-                              {isUpdating ? (
-                                <Loader2 className="size-3 animate-spin text-current" />
-                              ) : isChecked ? (
-                                <Check className="size-3.5 stroke-[3]" />
-                              ) : null}
-                            </div>
-                          </button>
-                        </li>
+                        <div key={root.id}>
+                          {renderFolderRow(root, false)}
+                          {children.map((child) => renderFolderRow(child, true))}
+                        </div>
                       );
                     })}
+                    {orphanChildren.map((child) => renderFolderRow(child, true))}
                   </ul>
                 )}
 
                 {/* Form tao nhanh thu muc */}
                 {showCreate ? (
-                  <form onSubmit={handleQuickCreate} className="flex gap-2 pt-2">
+                  <form onSubmit={handleQuickCreate} className="space-y-2 pt-2">
                     <Input
                       value={newFolderName}
                       onChange={(e) => setNewFolderName(e.target.value)}
@@ -199,44 +228,59 @@ export function AddToFolderDialog({
                       maxLength={80}
                       autoFocus
                       required
-                      className="h-9 text-sm"
                     />
-                    <Button type="submit" size="sm" disabled={creating || !newFolderName.trim()}>
-                      {creating ? <Loader2 className="size-4 animate-spin" /> : 'Tạo'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowCreate(false)}
-                    >
-                      Hủy
-                    </Button>
+
+                    {rootFolders.length > 0 && (
+                      <select
+                        value={selectedParentId}
+                        onChange={(e) => setSelectedParentId(e.target.value)}
+                        className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        <option value="">Thư mục gốc (không thuộc thư mục nào)</option>
+                        {rootFolders.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            Nằm trong thư mục: {r.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowCreate(false)}
+                      >
+                        Hủy
+                      </Button>
+                      <Button type="submit" size="sm" disabled={creating || !newFolderName.trim()}>
+                        {creating ? 'Đang tạo...' : 'Tạo & Thêm'}
+                      </Button>
+                    </div>
                   </form>
                 ) : (
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
+                    variant="outline"
+                    className="w-full gap-2 border-dashed"
                     onClick={() => setShowCreate(true)}
-                    className="w-full gap-1.5 text-muted-foreground hover:text-foreground"
                   >
                     <Plus className="size-4" />
-                    <span>Tạo thư mục mới</span>
+                    <span>Tạo thư mục hoặc chủ đề mới</span>
                   </Button>
                 )}
-
-                <div className="flex justify-end pt-2 border-t border-border">
-                  <Button type="button" onClick={() => setOpen(false)}>
-                    Xong
-                  </Button>
-                </div>
               </div>
             )}
+
+            <div className="flex justify-end pt-2">
+              <Button type="button" onClick={() => setOpen(false)}>
+                Hoàn tất
+              </Button>
+            </div>
           </div>
         </div>
       )}
     </>
   );
 }
-
