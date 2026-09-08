@@ -6,3 +6,4 @@ export * from './study';
 export * from './folder';
 export * from './upload';
 export * from './report';
+export * from './auth';

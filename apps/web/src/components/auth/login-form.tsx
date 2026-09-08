@@ -22,6 +22,7 @@ export function LoginForm() {
   // /auth/callback dieu huong ve day kem ?error=... khi luong OAuth that bai. Doc ngay o
   // gia tri khoi tao, neu khong thi loi cua Google se bien mat khong dau vet.
   const [formError, setFormError] = useState<string | null>(() => searchParams.get('error'));
+  const formMessage = searchParams.get('message');
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -62,6 +63,7 @@ export function LoginForm() {
 
   return (
     <div className="space-y-5">
+      {formMessage && <Alert tone="success">{formMessage}</Alert>}
       {formError && <Alert tone="error">{formError}</Alert>}
 
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
