@@ -18,6 +18,7 @@ import { apiServer } from '@/lib/api/server';
 import { createClient } from '@/lib/supabase/server';
 import { ApiRequestError } from '@/lib/api/request';
 import { flashcardImageUrl } from '@/lib/flashcard-image';
+import { SetFlashcardPreview } from '@/components/study/set-flashcard-preview';
 import { cn } from '@/lib/utils';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -79,7 +80,7 @@ export default async function StudySetPage({ params }: PageProps) {
   const isOwner = user?.id === set.ownerId;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-4xl px-4 py-10">
       <header className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-3xl font-bold tracking-tight">{set.title}</h1>
@@ -134,32 +135,43 @@ export default async function StudySetPage({ params }: PageProps) {
         </div>
       </header>
 
-      <section aria-labelledby="modes-heading" className="mt-8">
-        <h2 id="modes-heading" className="text-lg font-semibold">
-          Học bộ thẻ này
-        </h2>
-        <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-          {MODES.map((mode) => (
-            <li key={mode.label}>
+      {/* Các chế độ học tập (Quizlet style tabs) */}
+      <section aria-label="Chế độ học" className="mt-8">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+          {MODES.map((mode) => {
+            const isFlashcard = mode.href === 'cards';
+            return (
               <Link
+                key={mode.label}
                 href={`/sets/${set.id}/${mode.href}`}
-                className="flex h-full items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:border-primary/50"
+                className={cn(
+                  'flex items-center justify-center sm:justify-start gap-2.5 rounded-xl border p-3 font-medium transition-all duration-150 shadow-xs text-sm',
+                  isFlashcard
+                    ? 'border-primary/50 bg-primary/10 text-primary hover:bg-primary/20'
+                    : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-accent/50'
+                )}
               >
-                <mode.icon className="size-5 shrink-0 text-primary" aria-hidden="true" />
-                <div>
-                  <p className="font-medium">{mode.label}</p>
-                  <p className="text-xs text-muted-foreground">{mode.hint}</p>
-                </div>
+                <mode.icon className="size-4 shrink-0" aria-hidden="true" />
+                <span>{mode.label}</span>
               </Link>
-            </li>
-          ))}
-        </ul>
+            );
+          })}
+        </div>
       </section>
 
-      <section aria-labelledby="cards-heading" className="mt-10">
-        <h2 id="cards-heading" className="text-lg font-semibold">
-          Danh sách thẻ
-        </h2>
+      {/* Khung xem trước thẻ Flashcard trực tiếp */}
+      {set.flashcards.length > 0 && (
+        <section aria-label="Thẻ ghi nhớ" className="mt-6">
+          <SetFlashcardPreview setId={set.id} cards={set.flashcards} />
+        </section>
+      )}
+
+      <section aria-labelledby="cards-heading" className="mt-12">
+        <div className="flex items-center justify-between mb-4">
+          <h2 id="cards-heading" className="text-xl font-bold">
+            Danh sách thẻ ({set.flashcards.length})
+          </h2>
+        </div>
         <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
           {set.flashcards.map((card, index) => {
             const imgUrl = flashcardImageUrl(card.imagePath);
