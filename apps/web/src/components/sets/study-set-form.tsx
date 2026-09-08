@@ -9,7 +9,6 @@ import {
   ImagePlus,
   Keyboard,
   Loader2,
-  Lock,
   Plus,
   Search,
   SlidersHorizontal,
@@ -427,7 +426,7 @@ export function StudySetForm({
 
       {/* Thanh cong cu Toolbar ngay tren danh sach the giong thiet ke mau */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-        {/* Nhom nut ben trai: [+ Nhap] [+ Them so do 🔒] */}
+        {/* Nhom nut ben trai: [+ Nhap] */}
         <div className="flex items-center gap-2">
           <Button
             type="button"
@@ -439,15 +438,6 @@ export function StudySetForm({
             <Plus className="size-3.5" />
             <span>Nhập</span>
           </Button>
-
-          <div
-            title="Tính năng nâng cao (Sắp ra mắt)"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3.5 py-1.5 text-xs text-muted-foreground cursor-not-allowed opacity-75"
-          >
-            <Plus className="size-3.5" />
-            <span>Thêm sơ đồ</span>
-            <Lock className="size-3 text-amber-500" />
-          </div>
         </div>
 
         {/* Nhom cong cu ben phai: [Goi y switch] [🔍] [↔] [⌨️] [🗑] */}
