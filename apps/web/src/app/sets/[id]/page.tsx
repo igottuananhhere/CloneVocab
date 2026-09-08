@@ -162,7 +162,7 @@ export default async function StudySetPage({ params }: PageProps) {
       {/* Khung xem trước thẻ Flashcard trực tiếp */}
       {set.flashcards.length > 0 && (
         <section aria-label="Thẻ ghi nhớ" className="mt-6">
-          <SetFlashcardPreview setId={set.id} cards={set.flashcards} />
+          <SetFlashcardPreview setId={set.id} cards={set.flashcards} setTitle={set.title} />
         </section>
       )}
 

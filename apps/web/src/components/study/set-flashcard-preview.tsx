@@ -32,11 +32,13 @@ function shuffleArray<T>(array: T[]): T[] {
 interface SetFlashcardPreviewProps {
   setId: string;
   cards: Flashcard[];
+  setTitle?: string;
 }
 
 export function SetFlashcardPreview({
   setId,
   cards,
+  setTitle,
 }: SetFlashcardPreviewProps) {
   const allParsed = useMemo(() => cards.map(parseVocabCard), [cards]);
 
@@ -136,7 +138,7 @@ export function SetFlashcardPreview({
       if (prev + 1 < deck.length) {
         return prev + 1;
       }
-      return 0;
+      return 0; // Quay ve 1 khi den cuoi cung
     });
   }, [deck.length]);
 
@@ -213,11 +215,31 @@ export function SetFlashcardPreview({
     <div
       ref={containerRef}
       className={`w-full select-none transition-colors ${
-        isFullscreen ? 'fixed inset-0 z-50 bg-[#13182e] p-6 flex flex-col justify-center' : ''
+        isFullscreen ? 'fixed inset-0 z-50 bg-[#13182e] p-6 flex flex-col justify-between overflow-y-auto' : ''
       }`}
     >
+      {/* Header khi che do Fullscreen */}
+      {isFullscreen && (
+        <div className="flex items-center justify-between pb-4 text-white max-w-4xl mx-auto w-full">
+          <div className="flex items-center gap-3">
+            {setTitle && <h2 className="text-base font-bold truncate max-w-md">{setTitle}</h2>}
+            <span className="text-xs text-white/60 bg-white/10 px-2.5 py-1 rounded-full font-mono">
+              {index + 1} / {deck.length}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            <Minimize2 className="size-4" />
+            <span>Thu nhỏ (Esc)</span>
+          </button>
+        </div>
+      )}
+
       {/* Khung the Flashcard xem truoc truc tiep */}
-      <div className="w-full [perspective:1200px]">
+      <div className={`w-full [perspective:1200px] ${isFullscreen ? 'max-w-4xl mx-auto my-auto' : ''}`}>
         <div
           key={`${currentCard.id}-${index}`}
           onClick={() => setFlipped((prev) => !prev)}
@@ -360,7 +382,7 @@ export function SetFlashcardPreview({
       </div>
 
       {/* Thanh cong cu dieu khien phia duoi the (Chuan Quizlet) */}
-      <div className="flex items-center justify-between mt-4 px-1 text-sm text-foreground">
+      <div className={`flex items-center justify-between mt-4 px-1 text-sm text-foreground ${isFullscreen ? 'max-w-4xl mx-auto w-full text-white' : ''}`}>
         {/* Trai: Toggle Theo doi tien do */}
         <div className="flex items-center gap-2">
           <label
