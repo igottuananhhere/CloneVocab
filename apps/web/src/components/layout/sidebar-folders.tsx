@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ChevronDown,
   ChevronRight,
@@ -27,12 +28,17 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
   const pathname = usePathname();
   const router = useRouter();
   const [folders, setFolders] = useState<FolderSummary[]>(initialFolders);
+  const [mounted, setMounted] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [parentId, setParentId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Dong bo khi initialFolders thay doi tu phia server
   useEffect(() => {
@@ -75,11 +81,10 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
   );
   const displayedRoots = [...rootFolders, ...orphanSubfolders];
 
-  // Quan ly trang thai dong/mo cua tung thu muc lon (mac dinh MO RONG tat ca thu muc co con de xem duoc thu muc nho)
+  // Quan ly trang thai dong/mo (expand/collapse) cua tung thu muc lon (mac dinh MO RONG tat ca thu muc co con)
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const map: Record<string, boolean> = {};
     for (const f of initialFolders) {
-      // Neu co thu muc con, mac dinh mo rong de nguoi dung thay va click duoc
       map[f.id] = true;
       if (f.parentId) {
         map[f.parentId] = true;
@@ -88,7 +93,7 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
     return map;
   });
 
-  // Tu dong mo thu muc lon khi nguoi dung dang truy cap vao thu muc nho cua no
+  // Tu dong mo thu muc lon khi dang truy cap vao thu muc nho cua no
   useEffect(() => {
     for (const f of folders) {
       if (pathname === `/folders/${f.id}` && f.parentId) {
@@ -104,7 +109,6 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
     return children.length > 0 && !!expanded[f.id];
   });
 
-  // Thu gon hoac mo rong 1 thu muc lon duy nhat
   function toggleExpand(folderId: string, e?: React.MouseEvent) {
     if (e) {
       e.preventDefault();
@@ -113,13 +117,10 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
     setExpanded((prev) => ({ ...prev, [folderId]: !prev[folderId] }));
   }
 
-  // Thu gon tat ca (Chi de hien thu muc lon) hoac Mo rong tat ca (Hien thi thu muc nho)
   function toggleAllSubfolders() {
     if (isAnyExpanded) {
-      // AN TAT CA THU MUC NHO: Chi de hien thu muc lon
       setExpanded({});
     } else {
-      // HIEN THI TAT CA THU MUC NHO
       const allExpandedMap: Record<string, boolean> = {};
       for (const f of displayedRoots) {
         allExpandedMap[f.id] = true;
@@ -181,7 +182,6 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
           Thư mục của bạn
         </span>
         <div className="flex items-center gap-1">
-          {/* Nut An / Hien toan bo thu muc nho */}
           {hasAnySubfolders && (
             <button
               type="button"
@@ -204,7 +204,6 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
             </button>
           )}
 
-          {/* Nut tao thu muc moi */}
           <button
             type="button"
             onClick={() => openCreateModal('')}
@@ -281,7 +280,6 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
 
                   {/* Cac nut hanh dong ben phai */}
                   <div className="flex items-center gap-1 shrink-0">
-                    {/* Nut them thu muc nho truc tiep */}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -296,7 +294,6 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
                       <span className="sr-only">Thêm thư mục nhỏ</span>
                     </button>
 
-                    {/* So luong thu muc nho */}
                     {hasChildren && (
                       <span
                         className="text-[10px] font-mono rounded-md bg-primary/10 text-primary px-1.5 py-0.5 font-bold"
@@ -306,7 +303,6 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
                       </span>
                     )}
 
-                    {/* So luong bo the */}
                     {folder.setCount > 0 && (
                       <span className="text-xs text-muted-foreground/70 tabular-nums px-1 font-mono">
                         {folder.setCount}
@@ -315,14 +311,13 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
                   </div>
                 </div>
 
-                {/* DANH SACH THƯ MỤC NHỎ: Hien thi khi isExpanded, An di khi !isExpanded de chi hien thu muc lon */}
+                {/* DANH SACH THƯ MỤC NHỎ */}
                 {hasChildren && isExpanded && (
                   <ul className="ml-5 border-l-2 border-primary/30 pl-2.5 py-0.5 space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
                     {children.map((child) => {
                       const isChildActive = pathname === `/folders/${child.id}`;
                       return (
                         <li key={child.id}>
-                          {/* Nguoi dung co the CLICK TRUC TIEP vao thu muc nho */}
                           <Link
                             href={`/folders/${child.id}`}
                             title={child.name}
@@ -347,7 +342,6 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
                       );
                     })}
 
-                    {/* Nut them nhanh thu muc nho */}
                     <li>
                       <button
                         type="button"
@@ -366,25 +360,31 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
         </ul>
       )}
 
-      {/* Modal Tao Thu Muc Lon / Thu Muc Nho */}
-      {openModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
+      {/* Modal Tao Thu Muc Lon / Thu Muc Nho (Su dung createPortal de khong bi bop hep boi sidebar) */}
+      {mounted && openModal && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in"
+          onClick={() => setOpenModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-border/40">
+              <h3 className="text-lg font-bold text-foreground">
                 {parentId ? 'Tạo thư mục nhỏ mới' : 'Tạo thư mục lớn mới'}
               </h3>
               <button
                 type="button"
                 onClick={() => setOpenModal(false)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors"
               >
                 <X className="size-4" />
                 <span className="sr-only">Đóng</span>
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleCreate} className="space-y-4 pt-1">
               <Field
                 id="sidebar-folder-name"
                 label={parentId ? 'Tên thư mục nhỏ' : 'Tên thư mục lớn'}
@@ -401,19 +401,20 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
                   maxLength={80}
                   autoFocus
                   required
+                  className="rounded-xl"
                 />
               </Field>
 
               {rootFolders.length > 0 && (
                 <div className="space-y-1.5">
-                  <label htmlFor="sidebar-parent-folder" className="text-sm font-medium">
+                  <label htmlFor="sidebar-parent-folder" className="text-sm font-medium text-foreground">
                     Thuộc thư mục lớn
                   </label>
                   <select
                     id="sidebar-parent-folder"
                     value={parentId}
                     onChange={(e) => setParentId(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                   >
                     <option value="">Không (Tạo thành thư mục lớn độc lập)</option>
                     {rootFolders.map((r) => (
@@ -435,20 +436,25 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
                   placeholder="Thêm mô tả ngắn về thư mục này..."
                   maxLength={500}
                   rows={3}
+                  className="rounded-xl"
                 />
               </Field>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/40">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setOpenModal(false)}
                   disabled={loading}
-                  className="cursor-pointer"
+                  className="rounded-xl px-4 font-semibold cursor-pointer"
                 >
                   Hủy
                 </Button>
-                <Button type="submit" disabled={loading || !name.trim()} className="cursor-pointer">
+                <Button
+                  type="submit"
+                  disabled={loading || !name.trim()}
+                  className="rounded-xl px-5 font-semibold cursor-pointer"
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 size-4 animate-spin" />
@@ -461,7 +467,8 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
