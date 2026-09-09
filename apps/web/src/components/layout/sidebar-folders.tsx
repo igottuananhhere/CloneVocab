@@ -3,7 +3,18 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
-import { Folder, FolderPlus, Loader2, X } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  EyeOff,
+  Folder,
+  FolderOpen,
+  FolderPlus,
+  FolderTree,
+  Loader2,
+  Plus,
+  X,
+} from 'lucide-react';
 import type { FolderSummary } from '@flashcard/contracts';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
@@ -19,6 +30,7 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
   const [openModal, setOpenModal] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [parentId, setParentId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +41,7 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
     }
   }, [initialFolders]);
 
-  // Luon fetch moi nhat ngay khi mount de cap nhat danh sach tuc thi
+  // Luon fetch moi nhat ngay khi mount tren client de tranh cache server cu
   useEffect(() => {
     apiBrowser<FolderSummary[]>('/folders/mine')
       .then((fresh) => {
@@ -40,7 +52,7 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
       .catch(() => {});
   }, []);
 
-  // Lang nghe su kien folders-updated
+  // Lang nghe su kien folders-updated de cap nhat danh sach tuc thi
   useEffect(() => {
     function handleFoldersUpdated() {
       apiBrowser<FolderSummary[]>('/folders/mine')
@@ -55,6 +67,75 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
     return () => window.removeEventListener('folders-updated', handleFoldersUpdated);
   }, []);
 
+  // Chia danh sach thanh thu muc lon (goc) va thu muc nho (con)
+  const rootFolders = folders.filter((f) => !f.parentId);
+  const getChildren = (pid: string) => folders.filter((f) => f.parentId === pid);
+  const orphanSubfolders = folders.filter(
+    (f) => f.parentId && !rootFolders.some((r) => r.id === f.parentId),
+  );
+  const displayedRoots = [...rootFolders, ...orphanSubfolders];
+
+  // Quan ly trang thai dong/mo cua tung thu muc lon (mac dinh MO RONG tat ca thu muc co con de xem duoc thu muc nho)
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const map: Record<string, boolean> = {};
+    for (const f of initialFolders) {
+      // Neu co thu muc con, mac dinh mo rong de nguoi dung thay va click duoc
+      map[f.id] = true;
+      if (f.parentId) {
+        map[f.parentId] = true;
+      }
+    }
+    return map;
+  });
+
+  // Tu dong mo thu muc lon khi nguoi dung dang truy cap vao thu muc nho cua no
+  useEffect(() => {
+    for (const f of folders) {
+      if (pathname === `/folders/${f.id}` && f.parentId) {
+        setExpanded((prev) => ({ ...prev, [f.parentId!]: true }));
+      }
+    }
+  }, [pathname, folders]);
+
+  // Kiem tra xem co thu muc nho nao dang duoc hien thi khong
+  const hasAnySubfolders = folders.some((f) => !!f.parentId);
+  const isAnyExpanded = displayedRoots.some((f) => {
+    const children = getChildren(f.id);
+    return children.length > 0 && !!expanded[f.id];
+  });
+
+  // Thu gon hoac mo rong 1 thu muc lon duy nhat
+  function toggleExpand(folderId: string, e?: React.MouseEvent) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setExpanded((prev) => ({ ...prev, [folderId]: !prev[folderId] }));
+  }
+
+  // Thu gon tat ca (Chi de hien thu muc lon) hoac Mo rong tat ca (Hien thi thu muc nho)
+  function toggleAllSubfolders() {
+    if (isAnyExpanded) {
+      // AN TAT CA THU MUC NHO: Chi de hien thu muc lon
+      setExpanded({});
+    } else {
+      // HIEN THI TAT CA THU MUC NHO
+      const allExpandedMap: Record<string, boolean> = {};
+      for (const f of displayedRoots) {
+        allExpandedMap[f.id] = true;
+      }
+      setExpanded(allExpandedMap);
+    }
+  }
+
+  function openCreateModal(parentFolderId: string = '') {
+    setParentId(parentFolderId);
+    setName('');
+    setDescription('');
+    setError(null);
+    setOpenModal(true);
+  }
+
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
@@ -68,12 +149,17 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
         body: {
           name: name.trim(),
           description: description.trim() || undefined,
+          parentId: parentId.trim() || undefined,
         },
       });
 
       setFolders((prev) => [created, ...prev]);
+      if (parentId) {
+        setExpanded((prev) => ({ ...prev, [parentId]: true }));
+      }
       setName('');
       setDescription('');
+      setParentId('');
       setOpenModal(false);
 
       window.dispatchEvent(new CustomEvent('folders-updated'));
@@ -94,72 +180,200 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Thư mục của bạn
         </span>
-        <button
-          type="button"
-          onClick={() => {
-            setName('');
-            setDescription('');
-            setError(null);
-            setOpenModal(true);
-          }}
-          title="Tạo thư mục mới"
-          className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-        >
-          <FolderPlus className="size-4" aria-hidden="true" />
-          <span className="sr-only">Tạo thư mục</span>
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Nut An / Hien toan bo thu muc nho */}
+          {hasAnySubfolders && (
+            <button
+              type="button"
+              onClick={toggleAllSubfolders}
+              title={
+                isAnyExpanded
+                  ? 'Ẩn các thư mục nhỏ (Chỉ hiện thư mục lớn)'
+                  : 'Hiển thị tất cả thư mục nhỏ'
+              }
+              className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+            >
+              {isAnyExpanded ? (
+                <EyeOff className="size-3.5 text-primary" aria-hidden="true" />
+              ) : (
+                <FolderTree className="size-3.5" aria-hidden="true" />
+              )}
+              <span className="sr-only">
+                {isAnyExpanded ? 'Ẩn thư mục nhỏ' : 'Hiện thư mục nhỏ'}
+              </span>
+            </button>
+          )}
+
+          {/* Nut tao thu muc moi */}
+          <button
+            type="button"
+            onClick={() => openCreateModal('')}
+            title="Tạo thư mục lớn mới"
+            className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+          >
+            <FolderPlus className="size-4" aria-hidden="true" />
+            <span className="sr-only">Tạo thư mục</span>
+          </button>
+        </div>
       </div>
 
-      {folders.length === 0 ? (
+      {displayedRoots.length === 0 ? (
         <p className="mt-2 px-3 text-xs text-muted-foreground/80">
-          Chưa có thư mục nào. Nhấn + để tạo thư mục quản lý bộ thẻ.
+          Chưa có thư mục nào. Nhấn + để tạo thư mục gom nhóm các bộ thẻ.
         </p>
       ) : (
-        <ul className="mt-1 flex flex-col gap-0.5">
-          {folders.map((folder) => {
+        <ul className="mt-1 flex flex-col gap-1">
+          {displayedRoots.map((folder) => {
+            const children = getChildren(folder.id);
+            const hasChildren = children.length > 0;
+            const isExpanded = !!expanded[folder.id];
             const isActive = pathname === `/folders/${folder.id}`;
 
             return (
-              <li key={folder.id}>
-                <Link
-                  href={`/folders/${folder.id}`}
-                  title={folder.name}
+              <li key={folder.id} className="space-y-0.5">
+                {/* Dong Thu Muc Lon */}
+                <div
                   className={cn(
-                    'group flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm transition-colors',
+                    'group relative flex items-center justify-between gap-1 rounded-lg px-2 py-1.5 text-sm transition-all',
                     isActive
-                      ? 'bg-primary/10 font-semibold text-primary'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      ? 'bg-primary/10 font-bold text-primary shadow-xs'
+                      : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground',
                   )}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <Folder
-                      className={cn(
-                        'size-4 shrink-0 transition-colors',
-                        isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    {/* Nut mui ten dong/mo thu muc con */}
+                    {hasChildren ? (
+                      <button
+                        type="button"
+                        onClick={(e) => toggleExpand(folder.id, e)}
+                        className="flex size-6 shrink-0 items-center justify-center rounded-md hover:bg-primary/15 hover:text-primary text-muted-foreground cursor-pointer transition-colors"
+                        title={
+                          isExpanded
+                            ? 'Ẩn các thư mục nhỏ (Chỉ hiện thư mục lớn)'
+                            : 'Hiển thị các thư mục nhỏ'
+                        }
+                        aria-label={isExpanded ? 'Ẩn thư mục nhỏ' : 'Hiện thư mục nhỏ'}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="size-3.5 stroke-[2.5]" />
+                        ) : (
+                          <ChevronRight className="size-3.5 stroke-[2.5]" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="size-6 shrink-0" />
+                    )}
+
+                    {/* Link mo thu muc lon */}
+                    <Link
+                      href={`/folders/${folder.id}`}
+                      title={folder.name}
+                      className="flex items-center gap-2 min-w-0 flex-1 truncate"
+                    >
+                      {isExpanded && hasChildren ? (
+                        <FolderOpen className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                      ) : (
+                        <Folder className="size-4 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" aria-hidden="true" />
                       )}
-                      aria-hidden="true"
-                    />
-                    <span className="truncate">{folder.name}</span>
+                      <span className="truncate">{folder.name}</span>
+                    </Link>
                   </div>
 
-                  {folder.setCount > 0 && (
-                    <span className="text-xs text-muted-foreground/70 tabular-nums shrink-0 font-mono">
-                      {folder.setCount}
-                    </span>
-                  )}
-                </Link>
+                  {/* Cac nut hanh dong ben phai */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* Nut them thu muc nho truc tiep */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openCreateModal(folder.id);
+                      }}
+                      title={`Thêm thư mục nhỏ vào ${folder.name}`}
+                      className="opacity-0 group-hover:opacity-100 flex size-6 items-center justify-center rounded hover:bg-primary/15 hover:text-primary text-muted-foreground transition-opacity cursor-pointer"
+                    >
+                      <Plus className="size-3.5" />
+                      <span className="sr-only">Thêm thư mục nhỏ</span>
+                    </button>
+
+                    {/* So luong thu muc nho */}
+                    {hasChildren && (
+                      <span
+                        className="text-[10px] font-mono rounded-md bg-primary/10 text-primary px-1.5 py-0.5 font-bold"
+                        title={`${children.length} thư mục nhỏ`}
+                      >
+                        {children.length} nhỏ
+                      </span>
+                    )}
+
+                    {/* So luong bo the */}
+                    {folder.setCount > 0 && (
+                      <span className="text-xs text-muted-foreground/70 tabular-nums px-1 font-mono">
+                        {folder.setCount}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* DANH SACH THƯ MỤC NHỎ: Hien thi khi isExpanded, An di khi !isExpanded de chi hien thu muc lon */}
+                {hasChildren && isExpanded && (
+                  <ul className="ml-5 border-l-2 border-primary/30 pl-2.5 py-0.5 space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                    {children.map((child) => {
+                      const isChildActive = pathname === `/folders/${child.id}`;
+                      return (
+                        <li key={child.id}>
+                          {/* Nguoi dung co the CLICK TRUC TIEP vao thu muc nho */}
+                          <Link
+                            href={`/folders/${child.id}`}
+                            title={child.name}
+                            className={cn(
+                              'group/child flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs transition-colors cursor-pointer',
+                              isChildActive
+                                ? 'bg-primary/15 font-bold text-primary'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                            )}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <Folder className="size-3.5 shrink-0 opacity-70 group-hover/child:opacity-100 text-primary transition-opacity" aria-hidden="true" />
+                              <span className="truncate">{child.name}</span>
+                            </div>
+                            {child.setCount > 0 && (
+                              <span className="text-[11px] text-muted-foreground/70 tabular-nums shrink-0 font-mono">
+                                {child.setCount}
+                              </span>
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    })}
+
+                    {/* Nut them nhanh thu muc nho */}
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => openCreateModal(folder.id)}
+                        className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer w-full text-left"
+                      >
+                        <Plus className="size-3" />
+                        <span>Thêm thư mục nhỏ...</span>
+                      </button>
+                    </li>
+                  </ul>
+                )}
               </li>
             );
           })}
         </ul>
       )}
 
-      {/* Modal Tao Thu Muc */}
+      {/* Modal Tao Thu Muc Lon / Thu Muc Nho */}
       {openModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in">
           <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Tạo thư mục mới</h3>
+              <h3 className="text-lg font-semibold">
+                {parentId ? 'Tạo thư mục nhỏ mới' : 'Tạo thư mục lớn mới'}
+              </h3>
               <button
                 type="button"
                 onClick={() => setOpenModal(false)}
@@ -171,16 +385,48 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
-              <Field id="sidebar-folder-name" label="Tên thư mục" error={error ?? undefined}>
+              <Field
+                id="sidebar-folder-name"
+                label={parentId ? 'Tên thư mục nhỏ' : 'Tên thư mục lớn'}
+                error={error ?? undefined}
+              >
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ví dụ: EDUCATION & LEARNING, Tiếng Anh..."
+                  placeholder={
+                    parentId
+                      ? 'Ví dụ: Unit 1, Ngữ pháp, Từ vựng chuyên ngành...'
+                      : 'Ví dụ: Tiếng Anh, Ôn thi Đại học...'
+                  }
                   maxLength={80}
                   autoFocus
                   required
                 />
               </Field>
+
+              {rootFolders.length > 0 && (
+                <div className="space-y-1.5">
+                  <label htmlFor="sidebar-parent-folder" className="text-sm font-medium">
+                    Thuộc thư mục lớn
+                  </label>
+                  <select
+                    id="sidebar-parent-folder"
+                    value={parentId}
+                    onChange={(e) => setParentId(e.target.value)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                  >
+                    <option value="">Không (Tạo thành thư mục lớn độc lập)</option>
+                    {rootFolders.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Chọn thư mục lớn nếu muốn tạo thư mục nhỏ nằm bên trong.
+                  </p>
+                </div>
+              )}
 
               <Field id="sidebar-folder-desc" label="Mô tả (tùy chọn)">
                 <Textarea
@@ -209,7 +455,7 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
                       Đang tạo...
                     </>
                   ) : (
-                    'Tạo thư mục'
+                    parentId ? 'Tạo thư mục nhỏ' : 'Tạo thư mục lớn'
                   )}
                 </Button>
               </div>
