@@ -18,10 +18,10 @@ export function StudySetCard({ set }: { set: StudySetSummary }) {
   const VisibilityIcon = visibility.icon;
 
   return (
-    <Card className="relative transition-colors hover:border-primary/50">
-      <CardContent className="pt-5">
+    <Card className="group relative transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-md bg-card">
+      <CardContent className="pt-5 pb-5">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-2 font-semibold tracking-tight">
+          <h3 className="line-clamp-2 font-semibold tracking-tight text-base group-hover:text-primary transition-colors">
             <Link
               href={`/sets/${set.id}`}
               className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -31,33 +31,38 @@ export function StudySetCard({ set }: { set: StudySetSummary }) {
             </Link>
           </h3>
           <span
-            className={cn('relative z-10 inline-flex shrink-0 items-center gap-1 text-xs', visibility.className)}
+            className={cn('relative z-10 inline-flex shrink-0 items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted', visibility.className)}
             title={visibility.label}
           >
-            <VisibilityIcon className="size-3.5" aria-hidden="true" />
-            <span className="sr-only">{visibility.label}</span>
+            <VisibilityIcon className="size-3" aria-hidden="true" />
+            <span className="font-medium text-[11px]">{visibility.label}</span>
           </span>
         </div>
 
         {set.description && (
-          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{set.description}</p>
+          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground leading-relaxed">{set.description}</p>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <span>{set.cardCount} thẻ</span>
+        <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-muted-foreground pt-3 border-t border-border/60">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary font-semibold font-mono text-[11px]">
+            {set.cardCount} thẻ
+          </span>
           {set.subject && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span>{set.subject}</span>
-            </>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium text-[11px]">
+              {set.subject}
+            </span>
           )}
-          <span aria-hidden="true">·</span>
-          <Link
-            href={`/u/${set.owner.username}`}
-            className="relative z-10 hover:text-foreground hover:underline"
-          >
-            {set.owner.displayName ?? set.owner.username}
-          </Link>
+          <span className="ml-auto flex items-center gap-1.5">
+            <span className="inline-flex size-5 items-center justify-center rounded-full bg-muted font-semibold text-[10px] uppercase text-foreground">
+              {(set.owner.displayName ?? set.owner.username)[0]}
+            </span>
+            <Link
+              href={`/u/${set.owner.username}`}
+              className="relative z-10 hover:text-foreground hover:underline font-medium"
+            >
+              {set.owner.displayName ?? set.owner.username}
+            </Link>
+          </span>
         </div>
       </CardContent>
     </Card>

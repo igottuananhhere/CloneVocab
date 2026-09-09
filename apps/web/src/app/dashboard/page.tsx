@@ -1,11 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
-  Bookmark,
-  Compass,
   Flame,
   Folder,
-  FolderOpen,
   Layers,
   Plus,
   TrendingUp,
@@ -13,7 +10,7 @@ import {
 import type { FolderSummary, MeProfile, StudySetSummary, StudyStats } from '@flashcard/contracts';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StudySetCard } from '@/components/sets/study-set-card';
+import { DashboardSetsExplorer } from '@/components/dashboard/dashboard-sets-explorer';
 import { apiServer } from '@/lib/api/server';
 import { cn } from '@/lib/utils';
 
@@ -155,20 +152,26 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {/* Header chào người dùng */}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Chào {displayName} 👋</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-3xl font-bold tracking-tight">Chào {displayName} 👋</h1>
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <Flame className="size-3.5 fill-amber-500" />
+              <span>Chăm chỉ</span>
+            </span>
+          </div>
           <p className="mt-1 text-muted-foreground text-sm">
             Hồ sơ công khai:{' '}
-            <Link href={`/u/${me.username}`} className="text-primary hover:underline">
+            <Link href={`/u/${me.username}`} className="text-primary font-medium hover:underline">
               /u/{me.username}
             </Link>
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/sets/create" className={buttonVariants({ size: 'sm' })}>
+          <Link href="/sets/create" className={cn(buttonVariants({ size: 'sm' }), 'rounded-xl shadow-xs')}>
             <Plus className="size-4 mr-1.5" />
             Tạo bộ thẻ
           </Link>
-          <Link href="/settings" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+          <Link href="/settings" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-xl')}>
             Chỉnh sửa hồ sơ
           </Link>
         </div>
@@ -178,64 +181,79 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       <section aria-label="Thống kê học tập">
         <div className="grid gap-4 sm:grid-cols-3">
           {/* A. Từ vựng hôm nay */}
-          <Card className="border-border/60 bg-gradient-to-br from-card to-card/60 shadow-xs">
+          <Card className="relative overflow-hidden border-border/70 bg-gradient-to-br from-card via-card to-amber-500/5 shadow-xs transition-all hover:shadow-md hover:border-amber-500/30 rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Từ vựng hôm nay
               </CardTitle>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
-                <Flame className="size-4.5" />
+              <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500 shadow-xs">
+                <Flame className="size-4.5 fill-amber-500/30" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tight">
+              <div className="text-3xl font-extrabold tracking-tight">
                 {stats.wordsStudiedToday ?? 0}
-                <span className="text-sm font-normal text-muted-foreground ml-1.5">từ</span>
+                <span className="text-sm font-normal text-muted-foreground ml-1.5 font-sans">từ</span>
               </div>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Số từ vựng bạn đã ôn tập trong ngày hôm nay
-              </p>
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                  <span>Mục tiêu ngày (20 từ)</span>
+                  <span className="font-semibold text-foreground">
+                    {Math.min(Math.round(((stats.wordsStudiedToday ?? 0) / 20) * 100), 100)}%
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500"
+                    style={{
+                      width: `${Math.min(Math.round(((stats.wordsStudiedToday ?? 0) / 20) * 100), 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           {/* B. Từ vựng trong tuần */}
-          <Card className="border-border/60 bg-gradient-to-br from-card to-card/60 shadow-xs">
+          <Card className="relative overflow-hidden border-border/70 bg-gradient-to-br from-card via-card to-emerald-500/5 shadow-xs transition-all hover:shadow-md hover:border-emerald-500/30 rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Từ vựng tuần này
               </CardTitle>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-500 shadow-xs">
                 <TrendingUp className="size-4.5" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tight">
+              <div className="text-3xl font-extrabold tracking-tight">
                 {stats.wordsStudiedThisWeek ?? 0}
-                <span className="text-sm font-normal text-muted-foreground ml-1.5">từ</span>
+                <span className="text-sm font-normal text-muted-foreground ml-1.5 font-sans">từ</span>
               </div>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Tổng số từ bạn đã học trong 7 ngày qua
+              <p className="mt-3 text-xs text-muted-foreground leading-relaxed flex items-center gap-1.5">
+                <span className="inline-block size-2 rounded-full bg-emerald-500" />
+                Tổng số từ bạn đã ôn tập trong 7 ngày qua
               </p>
             </CardContent>
           </Card>
 
           {/* C. Học phần đã thêm */}
-          <Card className="border-border/60 bg-gradient-to-br from-card to-card/60 shadow-xs">
+          <Card className="relative overflow-hidden border-border/70 bg-gradient-to-br from-card via-card to-primary/5 shadow-xs transition-all hover:shadow-md hover:border-primary/30 rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Học phần đã thêm
               </CardTitle>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary shadow-xs">
                 <Layers className="size-4.5" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tight">
+              <div className="text-3xl font-extrabold tracking-tight">
                 {stats.totalSetsAdded || (sets.length + savedSets.length)}
-                <span className="text-sm font-normal text-muted-foreground ml-1.5">học phần</span>
+                <span className="text-sm font-normal text-muted-foreground ml-1.5 font-sans">học phần</span>
               </div>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Gồm {sets.length} bộ tự tạo · {savedSets.length} bộ đã lưu
+              <p className="mt-3 text-xs text-muted-foreground leading-relaxed flex items-center gap-1.5">
+                <span className="inline-block size-2 rounded-full bg-primary" />
+                Gồm <strong>{sets.length}</strong> bộ của bạn · <strong>{savedSets.length}</strong> bộ đã lưu
               </p>
             </CardContent>
           </Card>
@@ -323,133 +341,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </section>
       )}
 
-      {/* 4. KHỐI QUẢN LÝ THƯ VIỆN BỘ THẺ (TABS) */}
-      <section aria-label="Quản lý bộ thẻ" className="space-y-6 pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-3">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard?tab=mine"
-              className={cn(
-                'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors',
-                activeTab === 'mine'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              )}
-            >
-              <FolderOpen className="size-4" aria-hidden="true" />
-              <span>Bộ thẻ của bạn</span>
-              <span
-                className={cn(
-                  'ml-1 rounded-full px-2 py-0.5 text-xs',
-                  activeTab === 'mine'
-                    ? 'bg-primary-foreground/20 text-primary-foreground'
-                    : 'bg-muted text-muted-foreground',
-                )}
-              >
-                {sets.length}
-              </span>
-            </Link>
-
-            <Link
-              href="/dashboard?tab=saved"
-              className={cn(
-                'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors',
-                activeTab === 'saved'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              )}
-            >
-              <Bookmark className="size-4" aria-hidden="true" />
-              <span>Đã lưu</span>
-              <span
-                className={cn(
-                  'ml-1 rounded-full px-2 py-0.5 text-xs',
-                  activeTab === 'saved'
-                    ? 'bg-primary-foreground/20 text-primary-foreground'
-                    : 'bg-muted text-muted-foreground',
-                )}
-              >
-                {savedSets.length}
-              </span>
-            </Link>
-          </div>
-
-          {activeTab === 'mine' ? (
-            <Link href="/sets/create" className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5')}>
-              <Plus className="size-4" aria-hidden="true" />
-              <span>Tạo bộ thẻ</span>
-            </Link>
-          ) : (
-            <Link
-              href="/explore"
-              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}
-            >
-              <Compass className="size-4" aria-hidden="true" />
-              <span>Khám phá thêm</span>
-            </Link>
-          )}
-        </div>
-
-        {/* Nội dung Tab */}
-        {activeTab === 'mine' ? (
-          sets.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="py-14 text-center">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
-                  <FolderOpen className="size-6 text-muted-foreground" aria-hidden="true" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold">Chưa có bộ thẻ nào</h3>
-                <p className="mt-1 text-sm text-muted-foreground max-w-sm mx-auto">
-                  Tạo bộ thẻ đầu tiên của bạn để bắt đầu học tập và ghi nhớ hiệu quả hơn.
-                </p>
-                <Link
-                  href="/sets/create"
-                  className={cn(buttonVariants({ size: 'sm' }), 'mt-6 gap-1.5')}
-                >
-                  <Plus className="size-4" aria-hidden="true" />
-                  <span>Tạo bộ thẻ</span>
-                </Link>
-              </CardContent>
-            </Card>
-          ) : (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sets.map((set) => (
-                <li key={set.id}>
-                  <StudySetCard set={set} />
-                </li>
-              ))}
-            </ul>
-          )
-        ) : savedSets.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-14 text-center">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
-                <Bookmark className="size-6 text-muted-foreground" aria-hidden="true" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">Chưa lưu bộ thẻ nào</h3>
-              <p className="mt-1 text-sm text-muted-foreground max-w-sm mx-auto">
-                Khi tìm thấy các bộ thẻ hữu ích của người khác, bạn có thể bấm &quot;Lưu bộ thẻ&quot;
-                để dễ dàng ôn tập lại tại đây.
-              </p>
-              <Link
-                href="/explore"
-                className={cn(buttonVariants({ size: 'sm' }), 'mt-6 gap-1.5')}
-              >
-                <Compass className="size-4" aria-hidden="true" />
-                <span>Khám phá bộ thẻ</span>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {savedSets.map((set) => (
-              <li key={set.id}>
-                <StudySetCard set={set} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {/* 4. KHỐI QUẢN LÝ THƯ VIỆN BỘ THẺ (INTERACTIVE TABS & TÌM KIẾM NHANH) */}
+      <DashboardSetsExplorer mySets={sets} savedSets={savedSets} initialTab={activeTab} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
+  ArrowRight,
   BookOpen,
   Layers,
   Repeat,
@@ -17,8 +18,8 @@ import { ReportSetDialog } from '@/components/sets/report-set-dialog';
 import { apiServer } from '@/lib/api/server';
 import { createClient } from '@/lib/supabase/server';
 import { ApiRequestError } from '@/lib/api/request';
-import { flashcardImageUrl } from '@/lib/flashcard-image';
 import { SetFlashcardPreview } from '@/components/study/set-flashcard-preview';
+import { SetCardsBrowser } from '@/components/sets/set-cards-browser';
 import { cn } from '@/lib/utils';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -59,10 +60,50 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 const MODES = [
-  { icon: Layers, label: 'Thẻ ghi nhớ', hint: 'Lật thẻ hai mặt', href: 'cards' },
-  { icon: Repeat, label: 'Học lại', hint: 'Ôn tập ngắt quãng', href: 'learn' },
-  { icon: BookOpen, label: 'Kiểm tra', hint: 'Tự luận & trắc nghiệm', href: 'test' },
-  { icon: Timer, label: 'Ghép cặp', hint: 'Trò chơi tính giờ', href: 'match' },
+  {
+    icon: Layers,
+    label: 'Thẻ ghi nhớ',
+    hint: 'Lật thẻ & ôn tập từ vựng',
+    href: 'cards',
+    cardStyle:
+      'border-blue-500/20 bg-gradient-to-br from-blue-500/10 via-card to-card hover:border-blue-500/50 hover:shadow-blue-500/10',
+    iconStyle:
+      'bg-blue-500/15 text-blue-500 group-hover:bg-blue-500 group-hover:text-white',
+    tag: 'Phổ biến nhất',
+  },
+  {
+    icon: Repeat,
+    label: 'Học lại',
+    hint: 'Ghi nhớ sâu theo Leitner',
+    href: 'learn',
+    cardStyle:
+      'border-purple-500/20 bg-gradient-to-br from-purple-500/10 via-card to-card hover:border-purple-500/50 hover:shadow-purple-500/10',
+    iconStyle:
+      'bg-purple-500/15 text-purple-500 group-hover:bg-purple-500 group-hover:text-white',
+    tag: 'Ghi nhớ sâu',
+  },
+  {
+    icon: BookOpen,
+    label: 'Kiểm tra',
+    hint: 'Trắc nghiệm & tự luận tính điểm',
+    href: 'test',
+    cardStyle:
+      'border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-card to-card hover:border-emerald-500/50 hover:shadow-emerald-500/10',
+    iconStyle:
+      'bg-emerald-500/15 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white',
+    tag: 'Đo lường',
+  },
+  {
+    icon: Timer,
+    label: 'Ghép cặp',
+    hint: 'Đua tốc độ kết nối cặp từ',
+    href: 'match',
+    cardStyle:
+      'border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-card to-card hover:border-amber-500/50 hover:shadow-amber-500/10',
+    iconStyle:
+      'bg-amber-500/15 text-amber-500 group-hover:bg-amber-500 group-hover:text-white',
+    tag: 'Thử thách',
+  },
 ];
 
 export default async function StudySetPage({ params }: PageProps) {
@@ -79,11 +120,27 @@ export default async function StudySetPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
   const isOwner = user?.id === set.ownerId;
 
+  const ownerInitial =
+    set.owner.displayName?.[0]?.toUpperCase() ??
+    set.owner.username[0]?.toUpperCase() ??
+    'U';
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      <header className="space-y-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">{set.title}</h1>
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-10">
+      {/* Header học phần */}
+      <header className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              {set.title}
+            </h1>
+            {set.description && (
+              <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
+                {set.description}
+              </p>
+            )}
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <AddToFolderDialog setId={set.id} isLoggedIn={Boolean(user)} />
             {!isOwner && (
@@ -100,7 +157,7 @@ export default async function StudySetPage({ params }: PageProps) {
               <>
                 <Link
                   href={`/sets/${set.id}/edit`}
-                  className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                  className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-xl shadow-xs')}
                 >
                   Chỉnh sửa
                 </Link>
@@ -110,49 +167,92 @@ export default async function StudySetPage({ params }: PageProps) {
           </div>
         </div>
 
-        {set.description && <p className="text-muted-foreground">{set.description}</p>}
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          <span>{set.cardCount} thẻ</span>
-          {set.subject && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span>{set.subject}</span>
-            </>
-          )}
-          <span aria-hidden="true">·</span>
-          <Link href={`/u/${set.owner.username}`} className="hover:text-foreground hover:underline">
-            {set.owner.displayName ?? set.owner.username}
+        {/* Metadata badges: Tác giả, số thẻ, môn học, quyền riêng tư */}
+        <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs text-muted-foreground">
+          {/* Tác giả */}
+          <Link
+            href={`/u/${set.owner.username}`}
+            className="group flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 transition-colors hover:border-primary/40 hover:bg-accent/40"
+          >
+            <div className="flex size-5 items-center justify-center rounded-full bg-primary/15 text-primary text-[10px] font-bold">
+              {ownerInitial}
+            </div>
+            <span className="font-medium text-foreground group-hover:underline">
+              {set.owner.displayName ?? set.owner.username}
+            </span>
           </Link>
+
+          {/* Số thẻ */}
+          <span className="inline-flex items-center rounded-full border border-border/70 bg-muted/60 px-2.5 py-1 font-semibold text-foreground/80 font-mono">
+            {set.cardCount} thuật ngữ
+          </span>
+
+          {/* Môn học */}
+          {set.subject && (
+            <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 font-semibold text-primary">
+              {set.subject}
+            </span>
+          )}
+
+          {/* Quyền xem */}
           {set.visibility !== 'PUBLIC' && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="capitalize">
-                {set.visibility === 'PRIVATE' ? 'Riêng tư' : 'Chỉ qua link'}
-              </span>
-            </>
+            <span className="inline-flex items-center rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 font-semibold text-amber-500">
+              {set.visibility === 'PRIVATE' ? 'Riêng tư' : 'Chỉ qua liên kết'}
+            </span>
           )}
         </div>
       </header>
 
-      {/* Các chế độ học tập (Quizlet style tabs) */}
+      {/* Bento Grid các chế độ học tập chuẩn Quizlet Plus */}
       <section aria-label="Chế độ học" className="mt-8">
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Chế độ học tập
+          </h2>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            Chọn phương pháp ôn luyện phù hợp
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {MODES.map((mode) => {
-            const isFlashcard = mode.href === 'cards';
+            const Icon = mode.icon;
             return (
               <Link
-                key={mode.label}
+                key={mode.href}
                 href={`/sets/${set.id}/${mode.href}`}
                 className={cn(
-                  'flex items-center justify-center sm:justify-start gap-2.5 rounded-xl border p-3 font-medium transition-all duration-150 shadow-xs text-sm',
-                  isFlashcard
-                    ? 'border-primary/50 bg-primary/10 text-primary hover:bg-primary/20'
-                    : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-accent/50'
+                  'group relative flex flex-col justify-between rounded-2xl border p-4 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer',
+                  mode.cardStyle
                 )}
               >
-                <mode.icon className="size-4 shrink-0" aria-hidden="true" />
-                <span>{mode.label}</span>
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div
+                      className={cn(
+                        'flex size-10 items-center justify-center rounded-xl transition-colors duration-200',
+                        mode.iconStyle
+                      )}
+                    >
+                      <Icon className="size-5" aria-hidden="true" />
+                    </div>
+                    <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground backdrop-blur-xs border border-border/60">
+                      {mode.tag}
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <h3 className="font-bold text-foreground text-base tracking-tight">
+                      {mode.label}
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                      {mode.hint}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-foreground/80 group-hover:text-primary transition-colors pt-2 border-t border-border/40">
+                  <span>Bắt đầu</span>
+                  <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+                </div>
               </Link>
             );
           })}
@@ -161,58 +261,19 @@ export default async function StudySetPage({ params }: PageProps) {
 
       {/* Khung xem trước thẻ Flashcard trực tiếp */}
       {set.flashcards.length > 0 && (
-        <section aria-label="Thẻ ghi nhớ" className="mt-6">
+        <section aria-label="Thẻ ghi nhớ" className="mt-8">
           <SetFlashcardPreview setId={set.id} cards={set.flashcards} setTitle={set.title} />
         </section>
       )}
 
+      {/* Danh sách thẻ từ vựng tương tác cao */}
       <section aria-labelledby="cards-heading" className="mt-12">
-        <div className="flex items-center justify-between mb-4">
-          <h2 id="cards-heading" className="text-xl font-bold">
-            Danh sách thẻ ({set.flashcards.length})
-          </h2>
-        </div>
-        <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
-          {set.flashcards.map((card, index) => {
-            const imgUrl = flashcardImageUrl(card.imagePath);
-            return (
-              <li
-                key={card.id}
-                className={cn(
-                  'grid gap-3 p-4 sm:items-center sm:gap-4',
-                  imgUrl ? 'sm:grid-cols-[1fr_1fr_auto]' : 'sm:grid-cols-2',
-                )}
-              >
-                <div>
-                  <p className="text-xs text-muted-foreground">Mặt trước</p>
-                  <p className="font-medium">{card.term}</p>
-                </div>
-                <div className="sm:border-l sm:border-border sm:pl-4">
-                  <p className="text-xs text-muted-foreground">Mặt sau</p>
-                  <p className="font-medium">{card.definition}</p>
-                </div>
-                {imgUrl && (
-                  <div className="flex justify-start sm:justify-end sm:pl-2">
-                    <div className="relative h-14 w-20 overflow-hidden rounded-md border border-border bg-muted">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imgUrl}
-                        alt={card.term}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  </div>
-                )}
-                <span className="sr-only">Thẻ {index + 1}</span>
-              </li>
-            );
-          })}
-        </ul>
+        <SetCardsBrowser setId={set.id} cards={set.flashcards} />
       </section>
 
       {!isOwner && (
-        <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <TriangleAlert className="size-4" aria-hidden="true" />
+        <p className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
+          <TriangleAlert className="size-3.5" aria-hidden="true" />
           Bạn chỉ có thể chỉnh sửa bộ thẻ do chính mình tạo.
         </p>
       )}
