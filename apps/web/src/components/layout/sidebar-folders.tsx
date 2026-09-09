@@ -367,7 +367,7 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
           onClick={() => setOpenModal(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150"
+            className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 overflow-hidden box-border"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border/40">
@@ -440,20 +440,20 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
                 />
               </Field>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/40">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-3 border-t border-border/40">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setOpenModal(false)}
                   disabled={loading}
-                  className="rounded-xl px-4 font-semibold cursor-pointer"
+                  className="w-full sm:w-auto rounded-xl px-4 font-semibold cursor-pointer"
                 >
                   Hủy
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading || !name.trim()}
-                  className="rounded-xl px-5 font-semibold cursor-pointer"
+                  className="w-full sm:w-auto rounded-xl px-5 font-semibold cursor-pointer"
                 >
                   {loading ? (
                     <>
