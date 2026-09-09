@@ -1,11 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import {
   ArrowUpDown,
   ChevronDown,
   ChevronUp,
+  Folder,
   ImagePlus,
   Keyboard,
   Loader2,
@@ -54,6 +55,8 @@ export function StudySetForm({
   initial?: StudySetDetail;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const folderId = searchParams.get('folderId');
 
   // Thong tin bo the
   const [title, setTitle] = useState(initial?.title ?? '');
@@ -253,6 +256,23 @@ export function StudySetForm({
               body: parsed.data,
             });
 
+      if (mode === 'create' && folderId) {
+        try {
+          await apiBrowser(`/folders/${folderId}/sets/${result.id}`, {
+            method: 'POST',
+          });
+        } catch (e) {
+          console.error('Không thể liên kết bộ thẻ vào thư mục:', e);
+        }
+        if (target === 'learn') {
+          router.push(`/sets/${result.id}/learn`);
+        } else {
+          router.push(`/folders/${folderId}`);
+        }
+        router.refresh();
+        return;
+      }
+
       if (target === 'learn') {
         router.push(`/sets/${result.id}/learn`);
       } else {
@@ -302,9 +322,17 @@ export function StudySetForm({
       {/* Header Bar giong thiet ke mau: Tieu de + Badge Cong khai + Nut Tao / Tao va on luyen */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/70 pb-5">
         <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {mode === 'create' ? 'Tạo một học phần mới' : 'Chỉnh sửa học phần'}
-          </h1>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {mode === 'create' ? 'Tạo một học phần mới' : 'Chỉnh sửa học phần'}
+            </h1>
+            {folderId && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <Folder className="size-3.5" />
+                <span>Lưu vào thư mục</span>
+              </span>
+            )}
+          </div>
           <div>
             <SetVisibilityBadge value={visibility} onChange={setVisibility} />
           </div>

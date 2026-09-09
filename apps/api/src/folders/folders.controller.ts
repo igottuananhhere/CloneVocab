@@ -73,15 +73,6 @@ export class FoldersController {
     return this.folders.remove(id, user);
   }
 
-  @Post(':id/sets/:setId')
-  addSet(
-    @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
-    @Param('setId', new ZodValidationPipe(uuidSchema)) setId: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ): Promise<{ success: boolean }> {
-    return this.folders.addSet(id, setId, user);
-  }
-
   @Post(':id/sets/batch')
   addSetsBatch(
     @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
@@ -89,6 +80,15 @@ export class FoldersController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ success: boolean; count: number }> {
     return this.folders.addSetsBatch(id, input.setIds, user);
+  }
+
+  @Post(':id/sets/:setId')
+  addSet(
+    @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
+    @Param('setId', new ZodValidationPipe(uuidSchema)) setId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ success: boolean }> {
+    return this.folders.addSet(id, setId, user);
   }
 
   @Delete(':id/sets/:setId')

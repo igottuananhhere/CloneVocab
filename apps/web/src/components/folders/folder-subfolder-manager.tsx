@@ -156,23 +156,36 @@ export function FolderSubfolderManager({
       const toAdd = Array.from(selectedSetIds).filter((id) => !currentIds.has(id));
       const toRemove = Array.from(currentIds).filter((id) => !selectedSetIds.has(id));
 
-      await Promise.all([
-        toAdd.length > 0
-          ? apiBrowser(`/folders/${targetId}/sets/batch`, {
-              method: 'POST',
-              body: { setIds: toAdd },
-            })
-          : Promise.resolve(),
-        ...toRemove.map((id) =>
-          apiBrowser(`/folders/${targetId}/sets/${id}`, { method: 'DELETE' }),
-        ),
-      ]);
+      if (toAdd.length > 0) {
+        try {
+          await apiBrowser(`/folders/${targetId}/sets/batch`, {
+            method: 'POST',
+            body: { setIds: toAdd },
+          });
+        } catch {
+          // Fallback neu endpoint batch chua kip deploy
+          await Promise.all(
+            toAdd.map((id) =>
+              apiBrowser(`/folders/${targetId}/sets/${id}`, { method: 'POST' }),
+            ),
+          );
+        }
+      }
+
+      if (toRemove.length > 0) {
+        await Promise.all(
+          toRemove.map((id) =>
+            apiBrowser(`/folders/${targetId}/sets/${id}`, { method: 'DELETE' }),
+          ),
+        );
+      }
 
       const updatedSets = allUserSets.filter((s) => selectedSetIds.has(s.id));
       setSetsByFolder((prev) => ({ ...prev, [targetId]: updatedSets }));
       setShowAddSetsModal(false);
       router.refresh();
-    } catch {
+    } catch (err) {
+      console.error('Lỗi cập nhật bộ thẻ vào thư mục:', err);
       window.alert('Không thể cập nhật danh sách bộ thẻ. Vui lòng thử lại.');
     } finally {
       setSavingSets(false);
@@ -286,24 +299,23 @@ export function FolderSubfolderManager({
                 : `Chọn từ các bộ thẻ của bạn để đưa vào ${activeTitle} và ôn tập hiệu quả hơn.`}
             </p>
 
-            <div className="pt-2">
-              {allUserSets.length === 0 ? (
-                <Link
-                  href="/sets/create"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow"
-                >
-                  <Plus className="size-4" />
-                  <span>Tạo bộ thẻ mới</span>
-                </Link>
-              ) : (
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Link
+                href={`/sets/create?folderId=${targetFolderId}`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+              >
+                <Plus className="size-4" />
+                <span>Tạo bộ thẻ mới cho thư mục</span>
+              </Link>
+              {allUserSets.length > 0 && (
                 <Button
                   type="button"
+                  variant="outline"
                   onClick={openAddSetsModal}
                   size="md"
-                  className="px-6 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow"
+                  className="px-5 gap-2 font-medium rounded-xl border-border"
                 >
-                  <Plus className="size-4" />
-                  <span>Thêm tài liệu học</span>
+                  <span>Chọn từ bộ thẻ có sẵn</span>
                 </Button>
               )}
             </div>
@@ -315,18 +327,26 @@ export function FolderSubfolderManager({
             <span className="text-sm font-medium text-muted-foreground">
               {currentSets.length} bộ thẻ trong {activeTitle}
             </span>
-            {allUserSets.length > 0 && activeTab !== 'all' && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={openAddSetsModal}
-                className="gap-1.5"
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/sets/create?folderId=${targetFolderId}`}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-accent transition-colors shadow-xs"
               >
-                <Plus className="size-4" />
-                <span>Thêm tài liệu</span>
-              </Button>
-            )}
+                <Plus className="size-3.5" />
+                <span>Tạo bộ thẻ mới</span>
+              </Link>
+              {allUserSets.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={openAddSetsModal}
+                  className="gap-1.5 rounded-xl text-xs font-semibold"
+                >
+                  <span>Thêm từ có sẵn</span>
+                </Button>
+              )}
+            </div>
           </div>
 
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -488,11 +508,11 @@ export function FolderSubfolderManager({
 
             <div className="flex items-center justify-between border-t border-border px-6 py-3.5 bg-muted/20">
               <Link
-                href="/sets/create"
+                href={`/sets/create?folderId=${targetFolderId}`}
                 className="text-xs font-medium text-primary hover:underline"
                 onClick={() => setShowAddSetsModal(false)}
               >
-                + Tạo bộ thẻ mới
+                + Tạo bộ thẻ mới cho thư mục này
               </Link>
 
               <div className="flex items-center gap-2">
