@@ -85,11 +85,13 @@ export default async function FolderDetailPage({ params }: PageProps) {
             )}
           </div>
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                {folder.parent ? `Chủ đề con · Thuộc ${folder.parent.name}` : 'Thư mục lớn'}
-              </span>
-            </div>
+            {folder.parent && (
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  Chủ đề con · Thuộc {folder.parent.name}
+                </span>
+              </div>
+            )}
             <h1 className="text-3xl font-bold tracking-tight">{folder.name}</h1>
             {folder.description && (
               <p className="mt-1 text-sm text-muted-foreground">{folder.description}</p>

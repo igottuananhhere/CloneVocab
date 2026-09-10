@@ -293,19 +293,6 @@ export function SidebarFolders({ initialFolders }: { initialFolders: FolderSumma
                       <Plus className="size-3.5" />
                       <span className="sr-only">Thêm thư mục nhỏ</span>
                     </button>
-
-                    {hasChildren ? (
-                      <span
-                        className="text-[10px] font-mono rounded-md bg-primary/10 text-primary px-1.5 py-0.5 font-bold"
-                        title={`${children.length} thư mục con`}
-                      >
-                        {children.length} con
-                      </span>
-                    ) : folder.setCount > 0 ? (
-                      <span className="text-xs text-muted-foreground/70 tabular-nums px-1 font-mono">
-                        {folder.setCount}
-                      </span>
-                    ) : null}
                   </div>
                 </div>
 

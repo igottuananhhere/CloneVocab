@@ -13,7 +13,6 @@ import {
   ChevronRight,
   FolderOpen,
   FolderPlus,
-  FolderTree,
   Loader2,
   Plus,
   Search,
@@ -64,9 +63,6 @@ export function FolderSubfolderManager({
   useEffect(() => {
     setSubfolders(folder.subfolders || []);
   }, [folder.subfolders]);
-
-  // Tong so bo the trong tat ca cac thu muc con
-  const totalSetsInSubfolders = subfolders.reduce((sum, item) => sum + (item.setCount || 0), 0);
 
   // Loc cac thu muc con theo tu khoa tim kiem
   const filteredSubfolders = subfolders.filter(
@@ -232,43 +228,7 @@ export function FolderSubfolderManager({
   // ==========================================
   if (isRootFolder) {
     return (
-      <div className="mt-8 space-y-8">
-        {/* Banner thong ke thu muc lon */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-border/70 bg-gradient-to-r from-card via-card to-primary/5 p-5 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <FolderTree className="size-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-base text-foreground">
-                  Cấu trúc chủ đề trong {folder.name}
-                </span>
-                <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                  Thư mục lớn
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {subfolders.length} thư mục con (Units) · {totalSetsInSubfolders} bộ thẻ từ vựng đã phân loại
-              </p>
-            </div>
-          </div>
-
-          <Button
-            type="button"
-            onClick={() => {
-              setNewSubfolderName('');
-              setNewSubfolderDesc('');
-              setSubfolderError(null);
-              setOpenCreateSubfolderModal(true);
-            }}
-            className="rounded-xl shadow-xs gap-2 font-semibold cursor-pointer shrink-0"
-          >
-            <Plus className="size-4" />
-            <span>Tạo thư mục con mới</span>
-          </Button>
-        </div>
-
+      <div className="mt-8 space-y-6">
         {/* Danh sach chu de / thu muc con */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -282,17 +242,33 @@ export function FolderSubfolderManager({
               </p>
             </div>
 
-            {subfolders.length > 3 && (
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={subfolderSearch}
-                  onChange={(e) => setSubfolderSearch(e.target.value)}
-                  placeholder="Tìm kiếm chủ đề con..."
-                  className="pl-8 h-8 text-xs rounded-xl"
-                />
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {subfolders.length > 3 && (
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={subfolderSearch}
+                    onChange={(e) => setSubfolderSearch(e.target.value)}
+                    placeholder="Tìm kiếm chủ đề con..."
+                    className="pl-8 h-9 text-xs rounded-xl"
+                  />
+                </div>
+              )}
+
+              <Button
+                type="button"
+                onClick={() => {
+                  setNewSubfolderName('');
+                  setNewSubfolderDesc('');
+                  setSubfolderError(null);
+                  setOpenCreateSubfolderModal(true);
+                }}
+                className="rounded-xl shadow-xs gap-2 font-semibold cursor-pointer shrink-0"
+              >
+                <Plus className="size-4" />
+                <span>Tạo thư mục con mới</span>
+              </Button>
+            </div>
           </div>
 
           {subfolders.length === 0 ? (
