@@ -11,6 +11,7 @@ import type { FolderSummary, MeProfile, StudySetSummary, StudyStats } from '@fla
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DashboardSetsExplorer } from '@/components/dashboard/dashboard-sets-explorer';
+import { StreakCalendarCard } from '@/components/dashboard/streak-calendar-card';
 import { apiServer } from '@/lib/api/server';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +43,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     wordsStudiedToday: 0,
     wordsStudiedThisWeek: 0,
     totalSetsAdded: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    activeDates: [],
   };
   let connectionError: string | null = null;
 
@@ -148,7 +152,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const jumpBackInSets = [...sets, ...savedSets].slice(0, 2);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 space-y-10">
+    <div className="mx-auto max-w-7xl px-4 py-8 space-y-8">
       {/* Header chào người dùng */}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -177,8 +181,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </div>
       </header>
 
-      {/* 1. KHỐI 3 THỐNG KÊ TIẾN ĐỘ TRỌNG TÂM */}
-      <section aria-label="Thống kê học tập">
+      {/* BỐ CỤC 2 CỘT CHUẨN QUIZLET (CỘT CHÍNH + CỘT LỊCH STREAK) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* CỘT CHÍNH BÊN TRÁI (8 CỘT) */}
+        <div className="lg:col-span-8 space-y-8 min-w-0">
+          {/* 1. KHỐI 3 THỐNG KÊ TIẾN ĐỘ TRỌNG TÂM */}
+          <section aria-label="Thống kê học tập">
         <div className="grid gap-4 sm:grid-cols-3">
           {/* A. Từ vựng hôm nay */}
           <Card className="relative overflow-hidden border-border/70 bg-gradient-to-br from-card via-card to-amber-500/5 shadow-xs transition-all hover:shadow-md hover:border-amber-500/30 rounded-2xl">
@@ -341,8 +349,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </section>
       )}
 
-      {/* 4. KHỐI QUẢN LÝ THƯ VIỆN BỘ THẺ (INTERACTIVE TABS & TÌM KIẾM NHANH) */}
-      <DashboardSetsExplorer mySets={sets} savedSets={savedSets} initialTab={activeTab} />
+        {/* 4. KHỐI QUẢN LÝ THƯ VIỆN BỘ THẺ (INTERACTIVE TABS & TÌM KIẾM NHANH) */}
+        <DashboardSetsExplorer mySets={sets} savedSets={savedSets} initialTab={activeTab} />
+      </div>
+
+      {/* CỘT PHỤ BÊN PHẢI (4 CỘT) - LỊCH STREAK & THÓI QUEN HỌC TẬP */}
+      <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-20">
+        <StreakCalendarCard stats={stats} />
+      </aside>
     </div>
-  );
+  </div>
+);
 }

@@ -167,11 +167,18 @@ describe('StudyService', () => {
             .mockResolvedValueOnce(2)  // due
             .mockResolvedValueOnce(5)  // studiedToday
             .mockResolvedValueOnce(8), // studiedWeek
+          findMany: vi.fn().mockResolvedValue([]),
         },
         studySet: { count: vi.fn().mockResolvedValue(3) },
         savedSet: { count: vi.fn().mockResolvedValue(2) },
-        testResult: { count: vi.fn().mockResolvedValue(3) },
-        matchResult: { aggregate: vi.fn().mockResolvedValue({ _min: { durationMs: 12000 } }) },
+        testResult: {
+          count: vi.fn().mockResolvedValue(3),
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        matchResult: {
+          aggregate: vi.fn().mockResolvedValue({ _min: { durationMs: 12000 } }),
+          findMany: vi.fn().mockResolvedValue([]),
+        },
       });
 
       const stats = await service.getStats(user);
@@ -185,6 +192,9 @@ describe('StudyService', () => {
         wordsStudiedToday: 5,
         wordsStudiedThisWeek: 8,
         totalSetsAdded: 5,
+        currentStreak: 0,
+        longestStreak: 0,
+        activeDates: [],
       });
     });
   });

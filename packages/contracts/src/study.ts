@@ -116,5 +116,8 @@ export const studyStatsSchema = z.object({
   wordsStudiedToday: z.number().int().default(0),
   wordsStudiedThisWeek: z.number().int().default(0),
   totalSetsAdded: z.number().int().default(0),
+  currentStreak: z.number().int().default(0),
+  longestStreak: z.number().int().default(0),
+  activeDates: z.array(z.string()).default([]),
 });
 export type StudyStats = z.infer<typeof studyStatsSchema>;

@@ -209,6 +209,9 @@ export class StudyService {
       studiedWeek,
       ownedSetsCount,
       savedSetsCount,
+      progressDates,
+      testDates,
+      matchDates,
     ] = await Promise.all([
       this.prisma.client.studyProgress.count({ where: { userId: user.id } }),
       this.prisma.client.studyProgress.count({
@@ -236,7 +239,27 @@ export class StudyService {
       }),
       this.prisma.client.studySet.count({ where: { ownerId: user.id } }),
       this.prisma.client.savedSet.count({ where: { userId: user.id } }),
+      this.prisma.client.studyProgress.findMany({
+        where: { userId: user.id, lastReviewedAt: { not: null } },
+        select: { lastReviewedAt: true },
+      }),
+      this.prisma.client.testResult.findMany({
+        where: { userId: user.id },
+        select: { takenAt: true },
+      }),
+      this.prisma.client.matchResult.findMany({
+        where: { userId: user.id },
+        select: { playedAt: true },
+      }),
     ]);
+
+    const allStudyDates: Date[] = [
+      ...progressDates.map((p) => p.lastReviewedAt!).filter(Boolean),
+      ...testDates.map((t) => t.takenAt).filter(Boolean),
+      ...matchDates.map((m) => m.playedAt).filter(Boolean),
+    ];
+
+    const { activeDates, currentStreak, longestStreak } = calculateStreakStats(allStudyDates, now);
 
     return {
       studiedCards: studied,
@@ -247,6 +270,9 @@ export class StudyService {
       wordsStudiedToday: studiedToday,
       wordsStudiedThisWeek: studiedWeek,
       totalSetsAdded: ownedSetsCount + savedSetsCount,
+      currentStreak,
+      longestStreak,
+      activeDates,
     };
   }
 
@@ -435,4 +461,81 @@ function normalize(text: string): string {
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** Chuyen doi thoi diem sang chuoi YYYY-MM-DD theo gio Viet Nam (GMT+7) */
+function toLocalDateKey(d: Date): string {
+  const local = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+  return local.toISOString().slice(0, 10);
+}
+
+/** Tinh toan chuoi ngay hoc (Streak) va danh sach cac ngay da hoc */
+function calculateStreakStats(
+  rawDates: Date[],
+  now: Date,
+): { activeDates: string[]; currentStreak: number; longestStreak: number } {
+  const activeSet = new Set<string>();
+  for (const d of rawDates) {
+    if (d && !isNaN(d.getTime())) {
+      activeSet.add(toLocalDateKey(d));
+    }
+  }
+
+  const activeDates = Array.from(activeSet).sort();
+  if (activeDates.length === 0) {
+    return { activeDates: [], currentStreak: 0, longestStreak: 0 };
+  }
+
+  // Tinh ky luc chuoi ngay hoc lien tiep dai nhat
+  let longestStreak = 1;
+  let currentRun = 1;
+  for (let i = 1; i < activeDates.length; i++) {
+    const prev = new Date(activeDates[i - 1] + 'T00:00:00Z');
+    const next = new Date(activeDates[i] + 'T00:00:00Z');
+    const diffDays = Math.round((next.getTime() - prev.getTime()) / (24 * 60 * 60 * 1000));
+    if (diffDays === 1) {
+      currentRun++;
+      if (currentRun > longestStreak) longestStreak = currentRun;
+    } else if (diffDays > 1) {
+      currentRun = 1;
+    }
+  }
+
+  // Tinh chuoi ngay hien tai (ket thuc hom nay hoac hom qua chua bi dut)
+  const todayKey = toLocalDateKey(now);
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const yesterdayKey = toLocalDateKey(yesterday);
+
+  let currentStreak = 0;
+  if (activeSet.has(todayKey)) {
+    currentStreak = 1;
+    let check = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    while (true) {
+      const key = toLocalDateKey(check);
+      if (activeSet.has(key)) {
+        currentStreak++;
+        check = new Date(check.getTime() - 24 * 60 * 60 * 1000);
+      } else {
+        break;
+      }
+    }
+  } else if (activeSet.has(yesterdayKey)) {
+    currentStreak = 1;
+    let check = new Date(yesterday.getTime() - 24 * 60 * 60 * 1000);
+    while (true) {
+      const key = toLocalDateKey(check);
+      if (activeSet.has(key)) {
+        currentStreak++;
+        check = new Date(check.getTime() - 24 * 60 * 60 * 1000);
+      } else {
+        break;
+      }
+    }
+  }
+
+  return {
+    activeDates,
+    currentStreak,
+    longestStreak: Math.max(longestStreak, currentStreak),
+  };
 }
