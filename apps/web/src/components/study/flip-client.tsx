@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -118,8 +118,15 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
 
+  // Gesture drag & swipe state
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [animatingOut, setAnimatingOut] = useState<'known' | 'learning' | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
+  const hasMovedRef = useRef(false);
+
   // Ngan phan loai nhi phan
-  const [knownCards, setKnownCards] = useState<ParsedVocabCard[]>([]);
+  const [knownCards, setKnownCards] = useState<ParsedVocabCard[]>(allParsedCards.length === 0 ? [] : []);
   const [learningCards, setLearningCards] = useState<ParsedVocabCard[]>([]);
 
   // Ngan xep lich su Undo
@@ -203,6 +210,89 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
     setFlipped((prev) => !prev);
   }
 
+  // Trigger flyout animation roi moi phan loai the
+  function triggerClassify(category: 'known' | 'learning') {
+    if (!currentCard || isRoundFinished || animatingOut) return;
+    setAnimatingOut(category);
+    setTimeout(() => {
+      handleClassify(category);
+      setAnimatingOut(null);
+      setDragOffset({ x: 0, y: 0 });
+    }, 220);
+  }
+
+  // Xu ly su kien Pointer (chuot & cam ung) de keo / quet the
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (isRoundFinished || Boolean(animatingOut) || !currentCard) return;
+    if (e.button !== 0) return; // Chi bat chuot trai
+
+    dragStartRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+    hasMovedRef.current = false;
+    setIsDragging(true);
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Bo qua neu trinh duyet khong ho tro
+    }
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragStartRef.current || dragStartRef.current.pointerId !== e.pointerId) return;
+
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+
+    if (!hasMovedRef.current && Math.hypot(dx, dy) > 6) {
+      hasMovedRef.current = true;
+    }
+
+    if (hasMovedRef.current) {
+      setDragOffset({ x: dx, y: dy });
+    }
+  }
+
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragStartRef.current || dragStartRef.current.pointerId !== e.pointerId) return;
+
+    dragStartRef.current = null;
+    setIsDragging(false);
+
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Bo qua
+    }
+
+    // Neu khong di chuyen hoac di chuyen duoi 6px -> coi la CLICK de lat the xem nghia
+    if (!hasMovedRef.current) {
+      setDragOffset({ x: 0, y: 0 });
+      handleFlip();
+      return;
+    }
+
+    // Nguong phan loai quet the (90px)
+    const threshold = 90;
+    if (dragOffset.x >= threshold) {
+      // Quet phai -> Da ghi nho
+      triggerClassify('known');
+    } else if (dragOffset.x <= -threshold) {
+      // Quet trai -> Chua nho
+      triggerClassify('learning');
+    } else {
+      // Chua vuot nguong -> the dan hoi quay ve giua
+      setDragOffset({ x: 0, y: 0 });
+    }
+  }
+
+  function handlePointerCancel() {
+    dragStartRef.current = null;
+    setIsDragging(false);
+    setDragOffset({ x: 0, y: 0 });
+  }
+
   // Phân loại: 'known' (✓ / →) hoặc 'learning' (✗ / ←)
   function handleClassify(category: 'known' | 'learning') {
     if (!currentCard || isRoundFinished) return;
@@ -251,6 +341,8 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
     setCurrentIndex(lastAction.prevIndex);
     setFlipped(false);
     setIsRoundFinished(false);
+    setDragOffset({ x: 0, y: 0 });
+    setAnimatingOut(null);
   }
 
   // Trộn các thẻ còn lại (⇌ / S)
@@ -263,6 +355,7 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
 
     setRoundCards(newQueue);
     setFlipped(false);
+    setDragOffset({ x: 0, y: 0 });
   }
 
   // Ôn lại ngay các từ chưa thuộc (Vòng tiếp theo)
@@ -276,6 +369,8 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
     setHistory([]);
     setRoundNumber((r) => r + 1);
     setIsRoundFinished(false);
+    setDragOffset({ x: 0, y: 0 });
+    setAnimatingOut(null);
   }
 
   // Học lại toàn bộ từ đầu
@@ -291,6 +386,8 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
     setHistory([]);
     setRoundNumber(1);
     setIsRoundFinished(false);
+    setDragOffset({ x: 0, y: 0 });
+    setAnimatingOut(null);
   }
 
   // Gửi đánh giá lên API backend
@@ -326,10 +423,10 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
         handleFlip();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        handleClassify('learning');
+        triggerClassify('learning');
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        handleClassify('known');
+        triggerClassify('known');
       } else if ((e.key === 'z' || e.key === 'Z') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         handleUndo();
@@ -342,7 +439,7 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, roundCards.length, currentCard, isRoundFinished, history.length]);
+  }, [currentIndex, roundCards.length, currentCard, isRoundFinished, history.length, animatingOut]);
 
   if (allParsedCards.length === 0) {
     return (
@@ -354,6 +451,46 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
       </div>
     );
   }
+
+  // Tinh toan style cho cu chi keo & quet the
+  const knownStampOpacity =
+    animatingOut === 'known'
+      ? 1
+      : dragOffset.x > 15
+      ? Math.min(1, Math.max(0, (dragOffset.x - 15) / 70))
+      : 0;
+
+  const learningStampOpacity =
+    animatingOut === 'learning'
+      ? 1
+      : dragOffset.x < -15
+      ? Math.min(1, Math.max(0, (-dragOffset.x - 15) / 70))
+      : 0;
+
+  let transformStyle = 'translate3d(0, 0, 0) rotate(0deg)';
+  let transitionStyle = isDragging
+    ? 'none'
+    : 'transform 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.15), opacity 0.22s ease';
+
+  if (animatingOut === 'known') {
+    transformStyle = 'translate3d(125%, 25px, 0) rotate(16deg)';
+    transitionStyle = 'transform 0.22s ease-out, opacity 0.22s ease-out';
+  } else if (animatingOut === 'learning') {
+    transformStyle = 'translate3d(-125%, 25px, 0) rotate(-16deg)';
+    transitionStyle = 'transform 0.22s ease-out, opacity 0.22s ease-out';
+  } else if (isDragging) {
+    const tiltDeg = Math.min(15, Math.max(-15, dragOffset.x * 0.065));
+    transformStyle = `translate3d(${dragOffset.x}px, ${dragOffset.y * 0.3}px, 0) rotate(${tiltDeg}deg)`;
+  }
+
+  const cardOpacity = animatingOut ? 0 : 1;
+
+  const dynamicBoxShadow =
+    dragOffset.x > 20
+      ? `0 20px 35px -10px rgba(16, 185, 129, ${Math.min(0.55, (dragOffset.x - 20) / 140)}), 0 0 18px rgba(16, 185, 129, 0.25)`
+      : dragOffset.x < -20
+      ? `0 20px 35px -10px rgba(244, 63, 94, ${Math.min(0.55, (-dragOffset.x - 20) / 140)}), 0 0 18px rgba(244, 63, 94, 0.25)`
+      : '0 25px 50px -12px rgba(0, 0, 0, 0.5)';
 
   return (
     <div className="flex w-full max-w-3xl flex-col items-center justify-between min-h-[560px] select-none text-white px-2 py-4">
@@ -386,7 +523,7 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
       </div>
 
       {/* 2 Badge: Dang hoc & Da biet */}
-      <div className="w-full max-w-2xl flex items-center justify-between mb-3 px-1">
+      <div className="w-full max-w-2xl flex items-center justify-between mb-2 px-1">
         {/* Góc trái: Đang học */}
         <div className="flex items-center gap-2 border border-amber-500/80 bg-amber-500/10 px-3.5 py-1 rounded-full text-xs font-bold text-amber-400 shadow-sm">
           <span className="flex size-4 items-center justify-center rounded-full bg-amber-500/20 text-[11px]">
@@ -404,87 +541,138 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
         </div>
       </div>
 
-      {/* Khung the Flashcard 3D */}
-      <div className="w-full max-w-2xl [perspective:1200px] my-auto">
+      {/* Thanh huong dan thao tac quet the */}
+      <div className="w-full max-w-2xl flex items-center justify-between px-2 text-[11px] font-medium text-white/50 mb-2.5">
+        <span className="flex items-center gap-1 text-rose-300/80 font-semibold">
+          <span>←</span> Quẹt trái: Chưa nhớ
+        </span>
+        <span className="text-white/40 hidden sm:inline">
+          Click chuột hoặc nhấn Space để lật nghĩa
+        </span>
+        <span className="flex items-center gap-1 text-emerald-300/80 font-semibold">
+          Quẹt phải: Đã ghi nhớ <span>→</span>
+        </span>
+      </div>
+
+      {/* Khung the Flashcard 3D co ho tro keo chuot / quet trai phai */}
+      <div className="w-full max-w-2xl [perspective:1200px] my-auto relative">
         <div
-          key={currentCard?.id || currentIndex}
-          onClick={handleFlip}
-          className={`relative h-[340px] sm:h-[390px] w-full cursor-pointer rounded-2xl transition-transform duration-500 [transform-style:preserve-3d] shadow-2xl ${
-            flipped ? '[transform:rotateY(180deg)]' : ''
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          style={{
+            transform: transformStyle,
+            transition: transitionStyle,
+            opacity: cardOpacity,
+            boxShadow: dynamicBoxShadow,
+          }}
+          className={`relative w-full select-none touch-none rounded-2xl ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
           }`}
         >
-          {/* Mặt trước: TỪ GỐC (Thuật ngữ) + IPA (TUYỆT ĐỐI KHÔNG HIỆN NGHĨA Ở ĐÂY) */}
-          <div className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[#384166] bg-[#252c48] overflow-hidden [backface-visibility:hidden]">
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              {currentCard && (
-                <>
-                  {currentCard.imagePath && (
-                    <div className="mb-4 max-h-36 max-w-xs overflow-hidden rounded-xl border border-white/10 bg-black/20">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={flashcardImageUrl(currentCard.imagePath) || ''}
-                        alt="Ảnh minh họa"
-                        className="max-h-36 w-auto object-contain"
-                      />
-                    </div>
-                  )}
-
-                  <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
-                    {currentCard.word}
-                  </div>
-
-                  {currentCard.ipa && (
-                    <div className="mt-2.5 text-base sm:text-lg font-medium text-white/70 font-mono tracking-wider">
-                      {currentCard.ipa}
-                    </div>
-                  )}
-
-                  <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs text-white/50">
-                    <span>Nhấn Space hoặc click để xem nghĩa</span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Thanh huong dan mau tim/lavender o chan the */}
-            <div className="bg-[#9bb0f5] text-[#13182e] py-2.5 px-4 flex items-center justify-center gap-2 text-xs font-semibold">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="text-sm">⌨</span> Phím tắt
-              </span>
-              <span>
-                Nhấn <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">Space</kbd> xem nghĩa | <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">←</kbd> học lại | <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">→</kbd> đã biết
-              </span>
-            </div>
+          {/* Con dau Stamp "ĐÃ GHI NHỚ" khi keo sang phai */}
+          <div
+            className="pointer-events-none absolute top-5 right-5 z-40 rounded-xl border-2 border-emerald-400 bg-emerald-500/25 px-4 py-1.5 text-sm sm:text-base font-black tracking-wider text-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.45)] uppercase rotate-12 backdrop-blur-xs transition-opacity duration-75 flex items-center gap-1.5"
+            style={{ opacity: knownStampOpacity }}
+          >
+            <Check className="size-5 stroke-[3]" />
+            <span>ĐÃ GHI NHỚ</span>
           </div>
 
-          {/* Mặt sau: NGHĨA TIẾNG VIỆT (Chỉ hiện khi bấm lật thẻ) */}
-          <div className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[#384166] bg-[#252c48] overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)]">
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              {currentCard && (
-                <>
-                  {/* Nhắc lại từ gốc nhỏ ở trên */}
-                  <div className="text-base sm:text-lg font-medium text-white/50 mb-3 font-mono">
-                    {currentCard.word} {currentCard.ipa ? `• ${currentCard.ipa}` : ''}
-                  </div>
+          {/* Con dau Stamp "CHƯA NHỚ" khi keo sang trai */}
+          <div
+            className="pointer-events-none absolute top-5 left-5 z-40 rounded-xl border-2 border-rose-400 bg-rose-500/25 px-4 py-1.5 text-sm sm:text-base font-black tracking-wider text-rose-300 shadow-[0_0_25px_rgba(244,63,94,0.45)] uppercase -rotate-12 backdrop-blur-xs transition-opacity duration-75 flex items-center gap-1.5"
+            style={{ opacity: learningStampOpacity }}
+          >
+            <X className="size-5 stroke-[3]" />
+            <span>CHƯA NHỚ</span>
+          </div>
 
-                  {/* Nghĩa tiếng Việt to, nổi bật */}
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-wide leading-snug max-w-lg">
-                    {currentCard.type ? (
-                      <span className="text-amber-400 font-semibold mr-2">
-                        ({currentCard.type})
-                      </span>
-                    ) : null}
-                    <span>{currentCard.meaning}</span>
-                  </div>
-                </>
-              )}
+          {/* The Flashcard 3D */}
+          <div
+            key={currentCard?.id || currentIndex}
+            className={`relative h-[340px] sm:h-[390px] w-full rounded-2xl transition-transform duration-500 [transform-style:preserve-3d] shadow-2xl ${
+              flipped ? '[transform:rotateY(180deg)]' : ''
+            }`}
+          >
+            {/* Mặt trước: TỪ GỐC (Thuật ngữ) + IPA (TUYỆT ĐỐI KHÔNG HIỆN NGHĨA Ở ĐÂY) */}
+            <div className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[#384166] bg-[#252c48] overflow-hidden [backface-visibility:hidden]">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center pointer-events-none">
+                {currentCard && (
+                  <>
+                    {currentCard.imagePath && (
+                      <div className="mb-4 max-h-36 max-w-xs overflow-hidden rounded-xl border border-white/10 bg-black/20 pointer-events-none">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={flashcardImageUrl(currentCard.imagePath) || ''}
+                          alt="Ảnh minh họa"
+                          draggable={false}
+                          className="max-h-36 w-auto object-contain pointer-events-none select-none"
+                        />
+                      </div>
+                    )}
+
+                    <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
+                      {currentCard.word}
+                    </div>
+
+                    {currentCard.ipa && (
+                      <div className="mt-2.5 text-base sm:text-lg font-medium text-white/70 font-mono tracking-wider">
+                        {currentCard.ipa}
+                      </div>
+                    )}
+
+                    <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs text-white/50">
+                      <span>Click chuột hoặc nhấn Space để xem nghĩa</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Thanh huong dan mau tim/lavender o chan the */}
+              <div className="bg-[#9bb0f5] text-[#13182e] py-2.5 px-4 flex items-center justify-center gap-2 text-xs font-semibold pointer-events-none">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="text-sm">💡</span> Thao tác:
+                </span>
+                <span>
+                  Quẹt trái <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">←</kbd> Chưa nhớ | Click / <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">Space</kbd> xem nghĩa | Quẹt phải <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">→</kbd> Đã nhớ
+                </span>
+              </div>
             </div>
 
-            {/* Thanh huong dan chan the */}
-            <div className="bg-[#9bb0f5] text-[#13182e] py-2.5 px-4 flex items-center justify-center gap-2 text-xs font-semibold">
-              <span>
-                Nhấn <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">Space</kbd> lật lại | <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">←</kbd> Chưa thuộc | <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">→</kbd> Đã thuộc
-              </span>
+            {/* Mặt sau: NGHĨA TIẾNG VIỆT (Chỉ hiện khi bấm lật thẻ) */}
+            <div className="absolute inset-0 flex flex-col justify-between rounded-2xl border border-[#384166] bg-[#252c48] overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)]">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center pointer-events-none">
+                {currentCard && (
+                  <>
+                    {/* Nhắc lại từ gốc nhỏ ở trên */}
+                    <div className="text-base sm:text-lg font-medium text-white/50 mb-3 font-mono">
+                      {currentCard.word} {currentCard.ipa ? `• ${currentCard.ipa}` : ''}
+                    </div>
+
+                    {/* Nghĩa tiếng Việt to, nổi bật */}
+                    <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-wide leading-snug max-w-lg">
+                      {currentCard.type ? (
+                        <span className="text-amber-400 font-semibold mr-2">
+                          ({currentCard.type})
+                        </span>
+                      ) : null}
+                      <span>{currentCard.meaning}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Thanh huong dan chan the */}
+              <div className="bg-[#9bb0f5] text-[#13182e] py-2.5 px-4 flex items-center justify-center gap-2 text-xs font-semibold pointer-events-none">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="text-sm">💡</span> Thao tác:
+                </span>
+                <span>
+                  Quẹt trái <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">←</kbd> Chưa nhớ | Click / <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">Space</kbd> lật lại | Quẹt phải <kbd className="rounded border border-[#7a93e8] bg-white/40 px-1.5 py-0.5 font-mono text-[11px]">→</kbd> Đã nhớ
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -523,8 +711,8 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
           {/* Nut ✗ (Chua thuoc / Hoc lai) */}
           <button
             type="button"
-            onClick={() => handleClassify('learning')}
-            title="Chưa thuộc (Phím ←)"
+            onClick={() => triggerClassify('learning')}
+            title="Chưa thuộc (Kéo trái hoặc phím ←)"
             className="size-14 rounded-2xl border border-rose-500/30 bg-[#252c48] text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/60 hover:text-rose-300 transition-all flex items-center justify-center shadow-lg active:scale-95"
           >
             <X className="size-6 stroke-[2.5]" />
@@ -533,8 +721,8 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
           {/* Nut ✓ (Da biet) */}
           <button
             type="button"
-            onClick={() => handleClassify('known')}
-            title="Đã biết (Phím →)"
+            onClick={() => triggerClassify('known')}
+            title="Đã biết (Kéo phải hoặc phím →)"
             className="size-14 rounded-2xl border border-emerald-500/30 bg-[#252c48] text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/60 hover:text-emerald-300 transition-all flex items-center justify-center shadow-lg active:scale-95"
           >
             <Check className="size-6 stroke-[2.5]" />
