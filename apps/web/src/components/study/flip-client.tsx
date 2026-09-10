@@ -15,6 +15,7 @@ import type { Flashcard } from '@flashcard/contracts';
 import { Button } from '@/components/ui/button';
 import { apiBrowser } from '@/lib/api/browser';
 import { flashcardImageUrl } from '@/lib/flashcard-image';
+import { NextModesSuggestions } from '@/components/study/next-modes-suggestions';
 
 export interface ParsedVocabCard {
   id: string;
@@ -756,8 +757,8 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
 
       {/* Popup tong ket vong hoc */}
       {isRoundFinished && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-[#384166] bg-[#252c48] p-6 shadow-2xl text-center space-y-5 animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-3xl border border-[#384166] bg-[#252c48] p-6 sm:p-7 shadow-2xl text-center space-y-5 animate-in zoom-in-95">
             <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/20 text-primary">
               {learningCards.length === 0 ? (
                 <Trophy className="size-8 text-amber-400" />
@@ -792,12 +793,12 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
               )}
             </div>
 
-            <div className="space-y-2.5 pt-2">
+            <div className="space-y-2.5 pt-1">
               {learningCards.length > 0 && (
                 <Button
                   type="button"
                   onClick={handleRelearnUnmastered}
-                  className="w-full h-11 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg"
+                  className="w-full h-11 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg cursor-pointer"
                 >
                   Ôn lại ngay ({learningCards.length} từ chưa thuộc)
                 </Button>
@@ -807,7 +808,7 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
                 type="button"
                 variant="outline"
                 onClick={handleRestartAll}
-                className="w-full h-11 text-sm font-semibold border-white/20 bg-white/5 hover:bg-white/10 text-white"
+                className="w-full h-11 text-sm font-semibold border-white/20 bg-white/5 hover:bg-white/10 text-white cursor-pointer"
               >
                 Học lại toàn bộ từ đầu
               </Button>
@@ -818,6 +819,18 @@ export function FlipClient({ setId, cards, setTitle }: FlipClientProps) {
               >
                 Về trang chi tiết bộ thẻ →
               </Link>
+            </div>
+
+            {/* Goi y cac tro choi khac san co de do nham chan */}
+            <div className="pt-4 border-t border-white/10 text-left">
+              <NextModesSuggestions
+                setId={setId}
+                currentMode="cards"
+                theme="dark"
+                layout="compact-list"
+                title="Đổi gió với các trò chơi khác"
+                subtitle="Thử thách phản xạ và kiểm tra trí nhớ với các chế độ có sẵn:"
+              />
             </div>
           </div>
         </div>

@@ -1,10 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { RotateCcw, Sparkles, Timer, Trophy } from 'lucide-react';
 import type { Flashcard } from '@flashcard/contracts';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { apiBrowser } from '@/lib/api/browser';
 import { flashcardImageUrl } from '@/lib/flashcard-image';
+import { NextModesSuggestions } from '@/components/study/next-modes-suggestions';
 import { cn } from '@/lib/utils';
 
 type Tile = {
@@ -107,14 +110,61 @@ export function MatchClient({ setId, cards }: { setId: string; cards: Flashcard[
   }
 
   if (done) {
-    const seconds = Math.round((bestMs ?? Date.now() - startedAt) / 1000);
+    const seconds = ((bestMs ?? Date.now() - startedAt) / 1000).toFixed(1);
     return (
-      <div className="rounded-lg border border-border p-8 text-center">
-        <p className="text-lg font-semibold">Hoàn thành!</p>
-        <p className="mt-1 text-muted-foreground">Thời gian: {seconds}s</p>
-        <Button className="mt-4" onClick={restart}>
-          Chơi lại
-        </Button>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs animate-in fade-in">
+        <div className="w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl text-center space-y-6 animate-in zoom-in-95">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500 shadow-inner">
+            <Trophy className="size-9 text-amber-500 animate-bounce" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+              <Sparkles className="size-3.5" />
+              <span>Hoàn thành xuất sắc!</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+              Bạn đã ghép xong tất cả các thẻ! 🎉
+            </h2>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <div className="flex items-center gap-2 rounded-2xl border border-border bg-muted/50 px-4 py-2 font-mono">
+                <Timer className="size-4 text-amber-500" />
+                <span className="text-xs font-medium text-muted-foreground">Thời gian:</span>
+                <span className="text-lg font-bold text-foreground">{seconds}s</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button
+              onClick={restart}
+              className="gap-2 h-11 px-6 rounded-xl font-semibold shadow-md cursor-pointer"
+            >
+              <RotateCcw className="size-4" />
+              <span>Chơi lại ván mới</span>
+            </Button>
+            <Link
+              href={`/sets/${setId}`}
+              className={cn(
+                buttonVariants({ variant: 'outline' }),
+                'h-11 px-5 rounded-xl font-semibold'
+              )}
+            >
+              Về trang bộ thẻ
+            </Link>
+          </div>
+
+          {/* Goi y cac tro choi khac san co de do nham chan */}
+          <div className="pt-4 border-t border-border/60">
+            <NextModesSuggestions
+              setId={setId}
+              currentMode="match"
+              layout="grid"
+              title="Đổi gió với các trò chơi khác"
+              subtitle="Khám phá các chế độ luyện tập khác để củng cố trí nhớ bền vững hơn:"
+            />
+          </div>
+        </div>
       </div>
     );
   }

@@ -3,15 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  BookOpen,
   CheckCircle2,
-  ChevronRight,
   Clock,
   Flame,
-  Layers,
   RotateCcw,
   Sparkles,
-  Timer,
   Volume2,
   XCircle,
 } from 'lucide-react';
@@ -20,6 +16,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { apiBrowser } from '@/lib/api/browser';
 import { flashcardImageUrl } from '@/lib/flashcard-image';
+import { NextModesSuggestions } from '@/components/study/next-modes-suggestions';
 import { cn } from '@/lib/utils';
 
 function parsePrompt(prompt: string) {
@@ -494,94 +491,13 @@ export function LearnClient({ setId, items }: { setId: string; items: LearnItem[
         </div>
 
         {/* GOI Y CAC TRO CHOI TIEP THEO (Next Mode Suggestions) */}
-        <div className="space-y-4 pt-6 border-t border-border/60">
-          <div className="space-y-1 text-left">
-            <h3 className="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
-              <Sparkles className="size-4 text-amber-500" />
-              <span>Bước tiếp theo: Khám phá các chế độ học khác</span>
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Thay đổi hình thức học giúp não bộ kích hoạt liên kết trí nhớ bền vững hơn.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Match Game */}
-            <Link
-              href={`/sets/${setId}/match`}
-              className="group flex flex-col justify-between rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-card to-card p-4 transition-all duration-200 hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-md cursor-pointer text-left"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                    <Timer className="size-4" />
-                  </div>
-                  <span className="rounded-full bg-background/80 border border-border/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    Đua phản xạ
-                  </span>
-                </div>
-                <h4 className="mt-3 font-bold text-sm text-foreground">Ghép cặp tính giờ</h4>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Đua tốc độ nối thẻ từ và nghĩa để lập kỷ lục cá nhân.
-                </p>
-              </div>
-              <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 group-hover:underline pt-2 border-t border-border/40">
-                <span>Chơi thử ngay</span>
-                <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-              </div>
-            </Link>
-
-            {/* Test Mode */}
-            <Link
-              href={`/sets/${setId}/test`}
-              className="group flex flex-col justify-between rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-card to-card p-4 transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:shadow-md cursor-pointer text-left"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                    <BookOpen className="size-4" />
-                  </div>
-                  <span className="rounded-full bg-background/80 border border-border/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    Đo lường
-                  </span>
-                </div>
-                <h4 className="mt-3 font-bold text-sm text-foreground">Kiểm tra thông minh</h4>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Tự tạo đề thi trắc nghiệm và tự luận chấm điểm ngay.
-                </p>
-              </div>
-              <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 group-hover:underline pt-2 border-t border-border/40">
-                <span>Làm bài thi</span>
-                <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-              </div>
-            </Link>
-
-            {/* Flashcard Mode */}
-            <Link
-              href={`/sets/${setId}/cards`}
-              className="group flex flex-col justify-between rounded-2xl border border-blue-500/25 bg-gradient-to-br from-blue-500/10 via-card to-card p-4 transition-all duration-200 hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-md cursor-pointer text-left"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-blue-500/15 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                    <Layers className="size-4" />
-                  </div>
-                  <span className="rounded-full bg-background/80 border border-border/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    Ôn lại thẻ
-                  </span>
-                </div>
-                <h4 className="mt-3 font-bold text-sm text-foreground">Thẻ ghi nhớ Flashcard</h4>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Lật thẻ hai mặt truyền thống, hỗ trợ phát âm và gắn sao.
-                </p>
-              </div>
-              <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:underline pt-2 border-t border-border/40">
-                <span>Lật thẻ</span>
-                <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-              </div>
-            </Link>
-          </div>
-        </div>
+        <NextModesSuggestions
+          setId={setId}
+          currentMode="learn"
+          layout="grid"
+          title="Đổi gió với các trò chơi khác sẵn có"
+          subtitle="Thay đổi hình thức học giúp não bộ kích hoạt liên kết trí nhớ bền vững hơn:"
+        />
       </div>
     );
   }
