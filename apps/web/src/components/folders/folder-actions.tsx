@@ -37,6 +37,7 @@ export function FolderActions({ folder }: { folder: FolderDetail | FolderSummary
       });
 
       setOpenEdit(false);
+      window.dispatchEvent(new CustomEvent('folders-updated'));
       router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Không thể cập nhật thư mục.';
@@ -54,7 +55,9 @@ export function FolderActions({ folder }: { folder: FolderDetail | FolderSummary
     setDeleting(true);
     try {
       await apiBrowser(`/folders/${folder.id}`, { method: 'DELETE' });
-      router.push('/dashboard');
+      window.dispatchEvent(new CustomEvent('folders-updated'));
+      const targetUrl = folder.parentId ? `/folders/${folder.parentId}` : '/dashboard';
+      router.push(targetUrl);
       router.refresh();
     } catch {
       window.alert('Không thể xóa thư mục. Vui lòng thử lại sau.');

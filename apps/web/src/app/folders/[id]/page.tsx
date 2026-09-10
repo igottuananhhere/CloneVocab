@@ -77,10 +77,19 @@ export default async function FolderDetailPage({ params }: PageProps) {
       {/* Header thu muc giong thiet ke mau */}
       <header className="flex items-center justify-between gap-4 pb-4">
         <div className="flex items-center gap-3.5">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-card border border-border/80 text-foreground shadow-sm">
-            <Folder className="size-6 text-foreground/80" aria-hidden="true" />
+          <div className="flex size-12 items-center justify-center rounded-xl bg-card border border-border/80 text-primary shadow-sm">
+            {folder.parent ? (
+              <Folder className="size-6" aria-hidden="true" />
+            ) : (
+              <Folder className="size-6 text-primary" aria-hidden="true" />
+            )}
           </div>
           <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                {folder.parent ? `Chủ đề con · Thuộc ${folder.parent.name}` : 'Thư mục lớn'}
+              </span>
+            </div>
             <h1 className="text-3xl font-bold tracking-tight">{folder.name}</h1>
             {folder.description && (
               <p className="mt-1 text-sm text-muted-foreground">{folder.description}</p>
