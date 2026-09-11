@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import { AppShell } from '@/components/layout/app-shell';
 import { ThemeProvider } from '@/components/theme-provider';
+import { PwaInstaller } from '@/components/pwa/pwa-installer';
 import './globals.css';
 
 /**
@@ -20,24 +21,42 @@ const geist = Geist({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  applicationName: 'CloneVocab',
   title: {
-    default: 'Vocab Quiz - Học bằng thẻ ghi nhớ',
-    template: '%s | Vocab Quiz',
+    default: 'CloneVocab - Học bằng thẻ ghi nhớ',
+    template: '%s | CloneVocab',
   },
   description:
     'Tạo bộ thẻ ghi nhớ của riêng bạn, học theo nhiều chế độ và khám phá bộ thẻ công khai của người khác.',
   openGraph: {
     type: 'website',
     locale: 'vi_VN',
-    siteName: 'Vocab Quiz',
+    siteName: 'CloneVocab',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'CloneVocab',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: '/favicon.png',
+    apple: '/apple-touch-icon.png',
   },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f1115' },
+    { media: '(prefers-color-scheme: light)', color: '#13182e' },
+    { media: '(prefers-color-scheme: dark)', color: '#13182e' },
   ],
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -54,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Bỏ qua, đến nội dung chính
           </a>
           <AppShell>{children}</AppShell>
+          <PwaInstaller />
         </ThemeProvider>
       </body>
     </html>
