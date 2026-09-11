@@ -9,7 +9,10 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  ShieldCheck,
 } from 'lucide-react';
+import type { MeProfile } from '@flashcard/contracts';
+import { apiBrowser } from '@/lib/api/browser';
 import { buttonVariants } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { createClient } from '@/lib/supabase/client';
@@ -32,6 +35,7 @@ export function TopbarActions({ isLoggedIn: initialLoggedIn }: { isLoggedIn: boo
     email: '',
     initial: 'U',
   });
+  const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -55,7 +59,10 @@ export function TopbarActions({ isLoggedIn: initialLoggedIn }: { isLoggedIn: boo
     const supabase = createClient();
 
     function updateUserData(user: { email?: string; user_metadata?: Record<string, unknown> } | null) {
-      if (!user) return;
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
       const email = user.email ?? '';
       const name = (user.user_metadata?.display_name ||
         user.user_metadata?.username ||
@@ -63,6 +70,15 @@ export function TopbarActions({ isLoggedIn: initialLoggedIn }: { isLoggedIn: boo
         'Người dùng') as string;
       const initial = name.length > 0 ? name[0]!.toUpperCase() : 'U';
       setUserInfo({ name, email, initial });
+
+      // Kiem tra quyen admin tu profiles/me
+      apiBrowser<MeProfile>('/profiles/me')
+        .then((prof) => {
+          setIsAdmin(prof.role === 'ADMIN');
+        })
+        .catch(() => {
+          setIsAdmin(false);
+        });
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -132,6 +148,22 @@ export function TopbarActions({ isLoggedIn: initialLoggedIn }: { isLoggedIn: boo
 
                 {/* Các liên kết điều hướng */}
                 <div className="py-1 space-y-0.5">
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/15 transition-colors border border-primary/20 mb-1"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <ShieldCheck className="size-4 text-primary" />
+                        <span>Trang quản trị</span>
+                      </div>
+                      <span className="rounded-md bg-primary text-primary-foreground px-1.5 py-0.2 text-[10px] font-bold">
+                        Admin
+                      </span>
+                    </Link>
+                  )}
+
                   <Link
                     href="/dashboard"
                     onClick={() => setMenuOpen(false)}

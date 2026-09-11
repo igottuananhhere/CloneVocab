@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { publicEnv } from '@/lib/env';
 
 /** Duong dan bat buoc dang nhap. So khop theo tien to. */
-const PROTECTED_PREFIXES = ['/dashboard', '/settings', '/sets/create'];
+const PROTECTED_PREFIXES = ['/dashboard', '/settings', '/sets/create', '/folders', '/admin'];
 
 /** Cac che do hoc nam duoi /sets/[id]/<mode>, bat buoc dang nhap de luu tien do. */
 const STUDY_MODES = ['learn', 'test', 'match', 'cards', 'edit'];

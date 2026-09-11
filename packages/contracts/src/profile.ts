@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { roleSchema } from './enums';
 
 /**
  * Username la dinh danh cong khai trong URL /u/[username].
@@ -22,6 +23,7 @@ export const profileSchema = z.object({
   displayName: z.string().nullable(),
   avatarUrl: z.string().nullable(),
   bio: z.string().nullable(),
+  role: roleSchema.default('USER'),
   createdAt: z.string(),
 });
 export type Profile = z.infer<typeof profileSchema>;

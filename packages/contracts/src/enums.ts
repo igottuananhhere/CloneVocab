@@ -5,6 +5,9 @@ import { z } from 'zod';
  * Gia tri phai trung khop 1-1 voi enum tuong ung trong packages/db/prisma/schema.prisma.
  */
 
+export const roleSchema = z.enum(['USER', 'ADMIN']);
+export type Role = z.infer<typeof roleSchema>;
+
 export const visibilitySchema = z.enum(['PUBLIC', 'PRIVATE', 'UNLISTED']);
 export type Visibility = z.infer<typeof visibilitySchema>;
 

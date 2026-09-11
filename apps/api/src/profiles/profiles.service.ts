@@ -124,6 +124,7 @@ function toPublicProfile(row: ProfileRow): Profile {
     displayName: row.displayName,
     avatarUrl: row.avatarUrl,
     bio: row.bio,
+    role: row.role,
     createdAt: row.createdAt.toISOString(),
   };
 }

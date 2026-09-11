@@ -15,6 +15,11 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 enum Visibility {
   PUBLIC
   PRIVATE
@@ -44,6 +49,7 @@ model Profile {
   displayName String?  @map("display_name") @db.VarChar(60)
   avatarUrl   String?  @map("avatar_url") @db.Text
   bio         String?  @db.VarChar(280)
+  role        Role     @default(USER)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
