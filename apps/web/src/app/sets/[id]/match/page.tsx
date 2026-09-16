@@ -30,18 +30,28 @@ export default async function MatchPage({ params }: PageProps) {
   if (!set) notFound();
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <header className="mb-6">
-        <Link href={`/sets/${id}`} className="text-sm text-muted-foreground hover:text-foreground">
-          ← Quay lại bộ thẻ
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Ghép cặp</h1>
-        <p className="text-sm text-muted-foreground">
-          Ghép nhanh thuật ngữ với định nghĩa, tính thời gian hoàn thành.
+    <div className="mx-auto max-w-4xl lg:max-w-5xl px-4 py-6 sm:py-8">
+      <header className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/60 pb-4">
+        <div>
+          <Link
+            href={`/sets/${id}`}
+            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 mb-1"
+          >
+            ← Quay lại bộ thẻ: <span className="text-foreground font-semibold truncate max-w-xs">{set.title}</span>
+          </Link>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <span>Trò chơi Ghép cặp</span>
+            <span className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
+              {set.flashcards.length} thẻ
+            </span>
+          </h1>
+        </div>
+        <p className="text-xs text-muted-foreground sm:text-right max-w-sm">
+          Ghép chuẩn thuật ngữ với định nghĩa nhanh nhất có thể. Mỗi đợt gồm 10 từ vựng.
         </p>
       </header>
 
-      <MatchClient setId={id} cards={set.flashcards} />
+      <MatchClient setId={id} cards={set.flashcards} setTitle={set.title} />
     </div>
   );
 }

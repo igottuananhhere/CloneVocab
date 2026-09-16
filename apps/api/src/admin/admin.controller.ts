@@ -38,3 +38,4 @@ export class AdminController {
     return this.adminService.resolveReport(id, input);
   }
 }
+
