@@ -1,15 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import {
-  ArrowRight,
-  BookOpen,
-  Layers,
-  Repeat,
-  Timer,
-  TriangleAlert,
-} from 'lucide-react';
-import type { StudySetDetail } from '@flashcard/contracts';
+import { TriangleAlert } from 'lucide-react';
+import type { StudySetDetail, StudyStats } from '@flashcard/contracts';
 import { buttonVariants } from '@/components/ui/button';
 import { DeleteSetButton } from '@/components/sets/delete-set-button';
 import { SaveSetButton } from '@/components/sets/save-set-button';
@@ -20,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ApiRequestError } from '@/lib/api/request';
 import { SetFlashcardPreview } from '@/components/study/set-flashcard-preview';
 import { SetCardsBrowser } from '@/components/sets/set-cards-browser';
+import { StudyModesBento } from '@/components/study/study-modes-bento';
 import { cn } from '@/lib/utils';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -59,53 +53,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const MODES = [
-  {
-    icon: Layers,
-    label: 'Thẻ ghi nhớ',
-    hint: 'Lật thẻ & ôn tập từ vựng',
-    href: 'cards',
-    cardStyle:
-      'border-blue-500/20 bg-gradient-to-br from-blue-500/10 via-card to-card hover:border-blue-500/50 hover:shadow-blue-500/10',
-    iconStyle:
-      'bg-blue-500/15 text-blue-500 group-hover:bg-blue-500 group-hover:text-white',
-    tag: 'Phổ biến nhất',
-  },
-  {
-    icon: Repeat,
-    label: 'Học lại',
-    hint: 'Ghi nhớ sâu theo Leitner',
-    href: 'learn',
-    cardStyle:
-      'border-purple-500/20 bg-gradient-to-br from-purple-500/10 via-card to-card hover:border-purple-500/50 hover:shadow-purple-500/10',
-    iconStyle:
-      'bg-purple-500/15 text-purple-500 group-hover:bg-purple-500 group-hover:text-white',
-    tag: 'Ghi nhớ sâu',
-  },
-  {
-    icon: BookOpen,
-    label: 'Kiểm tra',
-    hint: 'Trắc nghiệm & tự luận tính điểm',
-    href: 'test',
-    cardStyle:
-      'border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-card to-card hover:border-emerald-500/50 hover:shadow-emerald-500/10',
-    iconStyle:
-      'bg-emerald-500/15 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white',
-    tag: 'Đo lường',
-  },
-  {
-    icon: Timer,
-    label: 'Ghép cặp',
-    hint: 'Đua tốc độ kết nối cặp từ',
-    href: 'match',
-    cardStyle:
-      'border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-card to-card hover:border-amber-500/50 hover:shadow-amber-500/10',
-    iconStyle:
-      'bg-amber-500/15 text-amber-500 group-hover:bg-amber-500 group-hover:text-white',
-    tag: 'Thử thách',
-  },
-];
-
 export default async function StudySetPage({ params }: PageProps) {
   const { id } = await params;
   const set = await loadSet(id);
@@ -119,6 +66,15 @@ export default async function StudySetPage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
   const isOwner = user?.id === set.ownerId;
+
+  let stats: StudyStats | null = null;
+  if (user) {
+    try {
+      stats = await apiServer<StudyStats>('/study/stats');
+    } catch {
+      stats = null;
+    }
+  }
 
   const ownerInitial =
     set.owner.displayName?.[0]?.toUpperCase() ??
@@ -203,61 +159,8 @@ export default async function StudySetPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* Bento Grid các chế độ học tập chuẩn Quizlet Plus */}
-      <section aria-label="Chế độ học" className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Chế độ học tập
-          </h2>
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            Chọn phương pháp ôn luyện phù hợp
-          </span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {MODES.map((mode) => {
-            const Icon = mode.icon;
-            return (
-              <Link
-                key={mode.href}
-                href={`/sets/${set.id}/${mode.href}`}
-                className={cn(
-                  'group relative flex flex-col justify-between rounded-2xl border p-4 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer',
-                  mode.cardStyle
-                )}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <div
-                      className={cn(
-                        'flex size-10 items-center justify-center rounded-xl transition-colors duration-200',
-                        mode.iconStyle
-                      )}
-                    >
-                      <Icon className="size-5" aria-hidden="true" />
-                    </div>
-                    <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground backdrop-blur-xs border border-border/60">
-                      {mode.tag}
-                    </span>
-                  </div>
-                  <div className="mt-3">
-                    <h3 className="font-bold text-foreground text-base tracking-tight">
-                      {mode.label}
-                    </h3>
-                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                      {mode.hint}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-foreground/80 group-hover:text-primary transition-colors pt-2 border-t border-border/40">
-                  <span>Bắt đầu</span>
-                  <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-1" />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+      {/* Bento Grid bộ thẻ trò chơi & chế độ học tập nâng cấp */}
+      <StudyModesBento setId={set.id} cardCount={set.cardCount} stats={stats} />
 
       {/* Khung xem trước thẻ Flashcard trực tiếp */}
       {set.flashcards.length > 0 && (
