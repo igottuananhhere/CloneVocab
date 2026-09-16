@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -183,7 +183,7 @@ export function DashboardSetsExplorer({
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredSets.map((set) => (
-            <li key={set.id}>
+            <li key={set.id} className="h-full flex flex-col">
               <StudySetCard set={set} />
             </li>
           ))}

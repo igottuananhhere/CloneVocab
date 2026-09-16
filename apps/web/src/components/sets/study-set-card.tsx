@@ -18,32 +18,41 @@ export function StudySetCard({ set }: { set: StudySetSummary }) {
   const VisibilityIcon = visibility.icon;
 
   return (
-    <Card className="group relative transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-md bg-card">
-      <CardContent className="pt-5 pb-5">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-2 font-semibold tracking-tight text-base group-hover:text-primary transition-colors">
-            <Link
-              href={`/sets/${set.id}`}
-              className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    <Card className="group relative flex h-full w-full flex-col justify-between transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-md bg-card">
+      <CardContent className="flex flex-1 flex-col justify-between p-5">
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-h-[3rem] flex-1">
+              <h3 className="line-clamp-2 font-semibold tracking-tight text-base leading-6 group-hover:text-primary transition-colors">
+                <Link
+                  href={`/sets/${set.id}`}
+                  className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <span className="absolute inset-0" aria-hidden="true" />
+                  {set.title}
+                </Link>
+              </h3>
+            </div>
+            <span
+              className={cn(
+                'relative z-10 inline-flex shrink-0 items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted',
+                visibility.className,
+              )}
+              title={visibility.label}
             >
-              <span className="absolute inset-0" aria-hidden="true" />
-              {set.title}
-            </Link>
-          </h3>
-          <span
-            className={cn('relative z-10 inline-flex shrink-0 items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted', visibility.className)}
-            title={visibility.label}
-          >
-            <VisibilityIcon className="size-3" aria-hidden="true" />
-            <span className="font-medium text-[11px]">{visibility.label}</span>
-          </span>
+              <VisibilityIcon className="size-3" aria-hidden="true" />
+              <span className="font-medium text-[11px]">{visibility.label}</span>
+            </span>
+          </div>
+
+          {set.description && (
+            <p className="mt-2 line-clamp-2 text-sm text-muted-foreground leading-relaxed">
+              {set.description}
+            </p>
+          )}
         </div>
 
-        {set.description && (
-          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground leading-relaxed">{set.description}</p>
-        )}
-
-        <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-muted-foreground pt-3 border-t border-border/60">
+        <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-muted-foreground pt-3 border-t border-border/60 mt-auto">
           <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary font-semibold font-mono text-[11px]">
             {set.cardCount} thẻ
           </span>

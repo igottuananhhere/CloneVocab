@@ -229,3 +229,4 @@ export function StudyModesBento({ setId, cardCount, stats }: StudyModesBentoProp
     </section>
   );
 }
+

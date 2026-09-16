@@ -601,7 +601,7 @@ export function FolderSubfolderManager({
 
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {sets.map((set) => (
-              <li key={set.id} className="group relative">
+              <li key={set.id} className="group relative h-full flex flex-col">
                 <StudySetCard set={set} />
                 <button
                   type="button"

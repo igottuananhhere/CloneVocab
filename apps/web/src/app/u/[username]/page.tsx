@@ -103,7 +103,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
         ) : (
           <ul className="mt-4 grid gap-4 sm:grid-cols-2">
             {sets.map((set) => (
-              <li key={set.id}>
+              <li key={set.id} className="h-full flex flex-col">
                 <StudySetCard set={set} />
               </li>
             ))}

@@ -240,7 +240,7 @@ export default async function ExplorePage({ searchParams }: PageProps) {
         <div className="mt-6">
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {data.items.map((set) => (
-              <li key={set.id}>
+              <li key={set.id} className="h-full flex flex-col">
                 <StudySetCard set={set} />
               </li>
             ))}
