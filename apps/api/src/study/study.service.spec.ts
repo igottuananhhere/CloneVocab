@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { NotFoundException } from '@nestjs/common';
-import { StudyService } from './study.service';
+import { StudyService, isWrittenAnswerCorrect } from './study.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { AuthenticatedUser } from '../auth/authenticated-user';
 
@@ -123,13 +123,59 @@ describe('StudyService', () => {
         studySet: { findUnique: vi.fn().mockResolvedValue(publicSet) },
       });
 
-      const test = await service.generateTest(publicSet.id, user.id);
+      const test = await service.generateTest(publicSet.id, user.id, 0);
 
       expect(test.questions).toHaveLength(3);
       expect(test.questions[0].type).toBe('MULTIPLE_CHOICE');
       expect(test.questions[0].choices).toBeDefined();
       // khong lo dap an ra ngoai
       expect((test.questions[0] as Record<string, unknown>).answer).toBeUndefined();
+    });
+
+    it('dao thu tu the khi su dung cac seed khac nhau', async () => {
+      const bigSet = {
+        ...publicSet,
+        flashcards: Array.from({ length: 10 }, (_, i) => ({
+          id: `card-${i}`,
+          studySetId: publicSet.id,
+          term: `Term ${i}`,
+          definition: `Definition ${i}`,
+          imagePath: null,
+          position: i,
+        })),
+      };
+
+      const service = makeService({
+        studySet: { findUnique: vi.fn().mockResolvedValue(bigSet) },
+      });
+
+      const test1 = await service.generateTest(publicSet.id, user.id, 12345);
+      const test2 = await service.generateTest(publicSet.id, user.id, 98765);
+      const test1Repeat = await service.generateTest(publicSet.id, user.id, 12345);
+
+      // Cung seed thi ra cung thu tu
+      expect(test1.questions.map((q) => q.flashcardId)).toEqual(
+        test1Repeat.questions.map((q) => q.flashcardId),
+      );
+
+      // Khac seed thi thu tu phai khac nhau
+      expect(test1.questions.map((q) => q.flashcardId)).not.toEqual(
+        test2.questions.map((q) => q.flashcardId),
+      );
+    });
+
+    it('cau hoi True/False luon dung mau cau khang dinh "co nghia la"', async () => {
+      const service = makeService({
+        studySet: { findUnique: vi.fn().mockResolvedValue(publicSet) },
+      });
+
+      const test = await service.generateTest(publicSet.id, user.id, 0);
+      const tfQuestions = test.questions.filter((q) => q.type === 'TRUE_FALSE');
+
+      for (const tf of tfQuestions) {
+        expect(tf.prompt).toContain('có nghĩa là');
+        expect(tf.prompt).not.toContain('không có nghĩa là');
+      }
     });
   });
 
@@ -196,6 +242,28 @@ describe('StudyService', () => {
         longestStreak: 0,
         activeDates: [],
       });
+    });
+  });
+
+  describe('isWrittenAnswerCorrect', () => {
+    it('khop cau tra loi dung voi dinh nghia co dau cham phay va tien to bi dong', () => {
+      // Truong hop thuc te cua nguoi dung: HONORED -> "vinh dự; được vinh danh"
+      expect(isWrittenAnswerCorrect('Vinh danh', 'vinh dự; được vinh danh')).toBe(true);
+      expect(isWrittenAnswerCorrect('vinh dự', 'vinh dự; được vinh danh')).toBe(true);
+      expect(isWrittenAnswerCorrect('được vinh danh', 'vinh dự; được vinh danh')).toBe(true);
+      expect(isWrittenAnswerCorrect('vinh dự; được vinh danh', 'vinh dự; được vinh danh')).toBe(true);
+    });
+
+    it('khop voi dau gach cheo va ngoac don chu thich', () => {
+      expect(isWrittenAnswerCorrect('xe hơi', 'xe hơi / ô tô')).toBe(true);
+      expect(isWrittenAnswerCorrect('ô tô', 'xe hơi / ô tô')).toBe(true);
+      expect(isWrittenAnswerCorrect('vinh danh', '(v) vinh danh')).toBe(true);
+      expect(isWrittenAnswerCorrect('listen', 'to listen')).toBe(true);
+    });
+
+    it('tu choi dap an sai', () => {
+      expect(isWrittenAnswerCorrect('thất bại', 'vinh dự; được vinh danh')).toBe(false);
+      expect(isWrittenAnswerCorrect('', 'vinh dự; được vinh danh')).toBe(false);
     });
   });
 });

@@ -53,6 +53,7 @@ export type TestQuestion = z.infer<typeof testQuestionSchema>;
 
 export const generateTestSchema = z.object({
   questions: z.array(testQuestionSchema),
+  seed: z.number().int().optional(),
 });
 export type GeneratedTest = z.infer<typeof generateTestSchema>;
 
@@ -60,6 +61,7 @@ export const submitTestSchema = z.object({
   /** Map tu questionId -> cau tra loi (chi so choice, chuoi viet, hay "true"/"false"). */
   answers: z.record(z.string(), z.string()),
   durationMs: z.number().int().min(0).optional(),
+  seed: z.number().int().optional(),
 });
 export type SubmitTestInput = z.infer<typeof submitTestSchema>;
 

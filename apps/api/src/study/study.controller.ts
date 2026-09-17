@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import {
   submitMatchSchema,
   submitReviewSchema,
@@ -43,8 +43,13 @@ export class StudyController {
   generateTest(
     @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
     @CurrentUser() user: AuthenticatedUser | undefined,
+    @Query('seed') seedParam?: string,
   ): Promise<GeneratedTest> {
-    return this.service.generateTest(id, user?.id);
+    const seed =
+      seedParam !== undefined && seedParam !== ''
+        ? Number(seedParam)
+        : Math.floor(Math.random() * 1_000_000_000) + 1;
+    return this.service.generateTest(id, user?.id, seed);
   }
 
   @Post(':id/test')

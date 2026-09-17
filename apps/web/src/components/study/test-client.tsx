@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, RotateCcw, Send, Sparkles, Trophy } from 'lucide-react';
-import type { TestQuestion, TestResult } from '@flashcard/contracts';
+import type { GeneratedTest, TestQuestion, TestResult } from '@flashcard/contracts';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { apiBrowser } from '@/lib/api/browser';
@@ -14,16 +14,21 @@ import { cn } from '@/lib/utils';
 
 export function TestClient({
   setId,
-  questions,
+  questions: initialQuestions,
+  initialSeed,
 }: {
   setId: string;
   questions: TestQuestion[];
+  initialSeed?: number;
 }) {
+  const [currentQuestions, setQuestions] = useState<TestQuestion[]>(initialQuestions);
+  const [currentSeed, setSeed] = useState<number | undefined>(initialSeed);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<TestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [startedAt] = useState(() => Date.now());
+  const [startedAt, setStartedAt] = useState(() => Date.now());
   const [submitting, setSubmitting] = useState(false);
+  const [loadingNewTest, setLoadingNewTest] = useState(false);
 
   const answeredCount = Object.keys(answers).length;
 
@@ -33,7 +38,7 @@ export function TestClient({
     try {
       const res = await apiBrowser<TestResult>(`/study-sets/${setId}/test`, {
         method: 'POST',
-        body: { answers, durationMs: Date.now() - startedAt },
+        body: { answers, durationMs: Date.now() - startedAt, seed: currentSeed },
       });
       setResult(res);
     } catch (err) {
@@ -42,6 +47,31 @@ export function TestClient({
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleRetakeTest() {
+    setLoadingNewTest(true);
+    setError(null);
+    try {
+      // Goi API lay bo de moi voi thu tu tu vung duoc dao ngau nhien
+      const fresh = await apiBrowser<GeneratedTest>(`/study-sets/${setId}/test`);
+      setQuestions(fresh.questions);
+      setSeed(fresh.seed);
+      setAnswers({});
+      setResult(null);
+      setStartedAt(Date.now());
+    } catch (err) {
+      setError(
+        err instanceof ApiRequestError
+          ? err.message
+          : 'Không thể tạo đề ngẫu nhiên mới. Bắt đầu lại với đề hiện tại.',
+      );
+      setAnswers({});
+      setResult(null);
+      setStartedAt(Date.now());
+    } finally {
+      setLoadingNewTest(false);
     }
   }
 
@@ -69,9 +99,14 @@ export function TestClient({
                 Thời gian làm bài: {Math.round((result.durationMs ?? 0) / 1000)} giây
               </p>
               <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 pt-2">
-                <Button variant="primary" onClick={() => setResult(null)} className="gap-2 rounded-xl font-semibold shadow-xs">
-                  <RotateCcw className="size-4" />
-                  <span>Làm lại bài kiểm tra</span>
+                <Button
+                  variant="primary"
+                  onClick={handleRetakeTest}
+                  disabled={loadingNewTest}
+                  className="gap-2 rounded-xl font-semibold shadow-xs"
+                >
+                  <RotateCcw className={cn('size-4', loadingNewTest && 'animate-spin')} />
+                  <span>{loadingNewTest ? 'Đang tạo đề mới...' : 'Làm lại (Đảo ngẫu nhiên)'}</span>
                 </Button>
                 <Link
                   href={`/sets/${setId}`}
@@ -127,7 +162,7 @@ export function TestClient({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <CheckCircle2 className="size-4 text-primary" />
           <span>
-            Đã trả lời: <strong className="text-foreground">{answeredCount}</strong> / {questions.length} câu
+            Đã trả lời: <strong className="text-foreground">{answeredCount}</strong> / {currentQuestions.length} câu
           </span>
         </div>
         <Button
@@ -147,14 +182,14 @@ export function TestClient({
         </div>
       )}
 
-      {questions.map((q, qi) => (
+      {currentQuestions.map((q, qi) => (
         <Card key={q.id}>
           <CardContent className="space-y-3 pt-5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {q.instruction}
               </span>
-              <span className="text-xs text-muted-foreground">Câu {qi + 1} / {questions.length}</span>
+              <span className="text-xs text-muted-foreground">Câu {qi + 1} / {currentQuestions.length}</span>
             </div>
 
             {q.imagePath && (
@@ -257,7 +292,7 @@ export function TestClient({
         <Button onClick={submit} disabled={submitting || answeredCount === 0} size="lg" className="gap-2">
           <Send className="size-4" />
           <span>
-            {submitting ? 'Đang nộp bài...' : `Nộp bài (${answeredCount}/${questions.length})`}
+            {submitting ? 'Đang nộp bài...' : `Nộp bài (${answeredCount}/${currentQuestions.length})`}
           </span>
         </Button>
       </div>

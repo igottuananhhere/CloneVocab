@@ -41,7 +41,7 @@ export default async function TestPage({ params }: PageProps) {
         </p>
       </header>
 
-      <TestClient setId={id} questions={test.questions} />
+      <TestClient setId={id} questions={test.questions} initialSeed={test.seed} />
     </div>
   );
 }

@@ -104,10 +104,12 @@ export class StudyService {
     return { updated };
   }
 
-  /** Sinh de kiem tra XAC DINH (khong random) de server cham lai tu du lieu the. */
-  async generateTest(id: string, userId?: string): Promise<GeneratedTest> {
+  /** Sinh de kiem tra: mac dinh seed > 0 se dao thu tu ngau nhien, co the lap lai theo seed de server cham. */
+  async generateTest(id: string, userId?: string, seed?: number): Promise<GeneratedTest> {
     const set = await this.getStudyableSet(id, userId);
-    return { questions: this.buildTestQuestions(set.flashcards).map(toPublicQuestion) };
+    const activeSeed = seed ?? (Math.floor(Math.random() * 1_000_000_000) + 1);
+    const questions = this.buildTestQuestions(set.flashcards, activeSeed);
+    return { questions: questions.map(toPublicQuestion), seed: activeSeed };
   }
 
   /** Cham bai lam, luu TestResult va tra ve chi tiet tung cau. */
@@ -117,7 +119,7 @@ export class StudyService {
     input: SubmitTestInput,
   ): Promise<TestResult> {
     const set = await this.getStudyableSet(id, user.id);
-    const built = this.buildTestQuestions(set.flashcards);
+    const built = this.buildTestQuestions(set.flashcards, input.seed ?? 0);
 
     let correctCount = 0;
     const questionResults: TestQuestionResult[] = built.map((question) => {
@@ -129,7 +131,7 @@ export class StudyService {
         correct = submitted === question.answer;
         yourAnswer = question.choices?.[Number(submitted)] ?? submitted;
       } else if (question.type === 'WRITTEN') {
-        correct = normalize(submitted) === question.answer;
+        correct = isWrittenAnswerCorrect(submitted, question.correctText);
       } else {
         const submittedBool = submitted === 'true';
         correct = submittedBool === (question.answer === 'true');
@@ -319,9 +321,11 @@ export class StudyService {
     };
   }
 
-  /** Sinh cau hoi kiem tra XAC DINH tu danh sach the. */
-  private buildTestQuestions(cards: Flashcard[]): BuiltQuestion[] {
-    const usable = cards.slice(0, TEST_MAX_QUESTIONS);
+  /** Sinh cau hoi kiem tra tu danh sach the. Neu co seed !== 0, dao thu tu the va lua chon ngau nhien. */
+  private buildTestQuestions(cards: Flashcard[], seed = 0): BuiltQuestion[] {
+    const rng = seed !== 0 ? createSeededRandom(seed) : null;
+    const orderedCards = rng ? shuffleWithSeed(cards, rng) : cards;
+    const usable = orderedCards.slice(0, TEST_MAX_QUESTIONS);
     const types: QuestionType[] = ['MULTIPLE_CHOICE', 'WRITTEN', 'TRUE_FALSE'];
 
     return usable.map((card, index) => {
@@ -329,9 +333,11 @@ export class StudyService {
 
       if (type === 'MULTIPLE_CHOICE') {
         const correct = card.definition;
-        const distractors = this.pickDistractors(card, cards, 3);
+        const distractors = this.pickDistractors(card, cards, 3, rng ?? undefined);
         const choices = [correct, ...distractors];
-        const target = ((card.position % choices.length) + choices.length) % choices.length;
+        const target = rng
+          ? Math.floor(rng() * choices.length)
+          : ((card.position % choices.length) + choices.length) % choices.length;
         const rotated = [...choices];
         rotated.splice(0, 1);
         rotated.splice(target, 0, correct);
@@ -363,15 +369,19 @@ export class StudyService {
       }
 
       // TRUE_FALSE
-      const distractor = this.pickDistractors(card, cards, 1)[0];
-      const truthful = distractor ? index % 2 === 0 : true;
+      const distractor = this.pickDistractors(card, cards, 1, rng ?? undefined)[0];
+      const truthful = distractor
+        ? rng
+          ? rng() >= 0.5
+          : index % 2 === 0
+        : true;
       const candidate = truthful ? card.definition : (distractor ?? card.definition);
       return {
         id: `${card.id}:TF`,
         flashcardId: card.id,
         type,
         instruction: 'Đúng hay sai?',
-        prompt: `"${card.term}" ${truthful ? 'có nghĩa là' : 'không có nghĩa là'} "${candidate}"`,
+        prompt: `"${card.term}" có nghĩa là "${candidate}"`,
         imagePath: card.imagePath,
         answer: String(truthful),
         correctText: truthful ? 'Đúng' : 'Sai',
@@ -379,12 +389,29 @@ export class StudyService {
     });
   }
 
-  /** Chon n dinh nghia khac cua cac the khac, xac dinh theo vi tri (khong random). */
-  private pickDistractors(card: Flashcard, allCards: Flashcard[], n: number): string[] {
+  /** Chon n dinh nghia khac cua cac the khac de lam distractor. */
+  private pickDistractors(
+    card: Flashcard,
+    allCards: Flashcard[],
+    n: number,
+    rng?: () => number,
+  ): string[] {
     const others = allCards.filter(
       (other) => other.id !== card.id && other.definition !== card.definition,
     );
     if (others.length === 0) return [];
+
+    if (rng) {
+      const shuffledOthers = shuffleWithSeed(others, rng);
+      const out: string[] = [];
+      for (const item of shuffledOthers) {
+        if (!out.includes(item.definition)) {
+          out.push(item.definition);
+          if (out.length >= n) break;
+        }
+      }
+      return out;
+    }
 
     const start = (allCards.indexOf(card) + 1) % others.length;
     const out: string[] = [];
@@ -461,6 +488,82 @@ function normalize(text: string): string {
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** PRNG Mulberry32 tao so ngau nhien co the lap lai dua tren seed. */
+function createSeededRandom(seed: number): () => number {
+  let s = Math.floor(Math.abs(seed)) || 1;
+  return function () {
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Dao mang ngau nhien co the lap lai dua vao bo sinh so rng. */
+function shuffleWithSeed<T>(array: T[], rng: () => number): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const temp = result[i]!;
+    result[i] = result[j]!;
+    result[j] = temp;
+  }
+  return result;
+}
+
+/** Kiem tra cau tra loi tu luan linh hoat:
+ *  - So sanh chinh xac sau khi normalize
+ *  - Ho tro cac dinh nghia ngan cach boi dau cham phay (;), dau phay (,), gach cheo (/), xuong dong
+ *  - Bo cac chu thich trong ngoac don (vi du: "(v) vinh danh" -> "vinh danh")
+ *  - Bo tro tu/tien to pho bien ("to ", "được ", "bị ", "làm ", "sự ", "việc ")
+ */
+export function isWrittenAnswerCorrect(submitted: string, expected: string): boolean {
+  const normSubmitted = normalize(submitted);
+  if (!normSubmitted) return false;
+
+  const normExpected = normalize(expected);
+  if (normSubmitted === normExpected) return true;
+
+  const stripPrefixes = (s: string) =>
+    s.replace(/^(được|bị|sự|việc|làm|tính từ|danh từ|động từ|to|a|an|the)\s+/gi, '').trim();
+
+  const stripParens = (s: string) =>
+    s.replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ').trim();
+
+  const subClean = stripPrefixes(normSubmitted);
+
+  // Tach cac nghia neu co ngan cach boi dau cham phay, phay, gach cheo, pipe, xuong dong
+  const parts = expected.split(/[;,/|\n]+/);
+  for (const rawPart of parts) {
+    const part = rawPart.trim();
+    if (!part) continue;
+
+    const normPart = normalize(part);
+    if (normPart === normSubmitted) return true;
+
+    const noParenPart = normalize(stripParens(part));
+    if (noParenPart && noParenPart === normSubmitted) return true;
+
+    const partClean = stripPrefixes(normPart);
+    if (partClean && (partClean === normSubmitted || (subClean && partClean === subClean))) {
+      return true;
+    }
+
+    const noParenClean = stripPrefixes(noParenPart);
+    if (noParenClean && (noParenClean === normSubmitted || (subClean && noParenClean === subClean))) {
+      return true;
+    }
+  }
+
+  // Thu kiem tra toan bo expected khi bo ngoac
+  const expectedNoParens = normalize(stripParens(expected));
+  if (expectedNoParens && expectedNoParens === normSubmitted) return true;
+  if (expectedNoParens && subClean && stripPrefixes(expectedNoParens) === subClean) return true;
+
+  return false;
 }
 
 /** Chuyen doi thoi diem sang chuoi YYYY-MM-DD theo gio Viet Nam (GMT+7) */
